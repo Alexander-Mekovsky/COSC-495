@@ -3,15 +3,23 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 # Load
-categories = pd.read_csv('AJSC_catcodes.csv')
-journals = pd.read_csv('ASJC_journals.csv')
+catFile = pd.read_csv('AJSC_catcodes.csv')
+journalFile = pd.read_csv('ASJC_journals.csv')
+
+catDict = []
+for category in catFile:
+  catDict
 
 # Bar Chart
-allAJSC = []
-for journal in journals:
+catCount = {}
+for codes in journalFile['All Science Journal Classification Codes (ASJC)']:
   delim = '; '
-  AJSC = journal['All Science Journal Classification Codes (ASJC)'].split(delim)
-  if len(AJSC) < 0 
+  AJSC = codes.split(delim)
+  catCount[len(AJSC)] += 1
+
+plt.bar(catCount.keys(), catCount.values())
+
+  
     
     
 
