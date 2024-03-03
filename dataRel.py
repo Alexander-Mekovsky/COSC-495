@@ -251,9 +251,9 @@ if header:
         print(animation[header['offset'] % len(animation)], end = "\r")
         header['offset'] += 25
         # Debugging Timeout
-        # time.sleep(calculate_timeout(header['offset'] / 25))
+        time.sleep(calculate_timeout(header['offset'] / 25))
         # Runtime Timeout
-        time.sleep(.15)
+        # time.sleep(.15)
 else:
     print("Failed to fetch initial data from Scopus API.")
 
