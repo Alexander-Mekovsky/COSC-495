@@ -5,6 +5,7 @@ from pyvis.network import Network
 import math
 import random
 
+
 # Initialize
 acatFile = pd.read_csv('catNames.csv', encoding ='latin-1')
 cKeys = [
@@ -167,65 +168,96 @@ for catCodes in journalFile['All Science Journal Classification Codes (ASJC)']:
 
 import requests
 import xml.etree.ElementTree as ET
+import sys
+import time
 
-def fetch_scopus_data(scopus_url):
+def calculate_timeout(n, max_timeout=25):
+    base_timeout = 2  
+    # Adjust the scale to control how quickly the timeout increases
+    scale = 6
+    timeout = min(base_timeout + math.log(n + 1) * scale, max_timeout)
+    return timeout
+
+def fetch_and_parse_scopus_data(scopus_url, keys):
     headers = {
         'Accept': 'application/xml'
     }
     response = requests.get(scopus_url, headers=headers)
     if response.status_code == 200:
-        return response.text
+        xml_data = response.text
+        return parse_xml(xml_data, keys)
     else:
-        print("Error fetching data from Scopus API.")
+        print("Error fetching data from Scopus API:",response.status_code)
         return None
 
-def parse_xml(xml_data):
+def parse_xml(xml_data, keys):
     entries = {}
     entries['entry'] = []
     root = ET.fromstring(xml_data)
     
-    entries['count'] = root.find('{http://a9.com/-/spec/opensearch/1.1/}totalResults').text
-    entries['offset'] = root.find('{http://a9.com/-/spec/opensearch/1.1/}startIndex').text
-    
-    print(entries['count'])
-    print(entries['offset'])
-    for entry in root.findall('{http://www.w3.org/2005/Atom}entry'):
-        entry_data = {}
-        entry_data['title'] = entry.find('{http://purl.org/dc/elements/1.1/}title').text
-        entry_data['creator'] = entry.find('{http://purl.org/dc/elements/1.1/}creator').text
-        entry_data['publication_name'] = entry.find('{http://prismstandard.org/namespaces/basic/2.0/}publicationName').text
-        entry_data['volume'] = entry.find('{http://prismstandard.org/namespaces/basic/2.0/}volume').text
-        entry_data['issue_identifier'] = entry.find('{http://prismstandard.org/namespaces/basic/2.0/}issueIdentifier').text if entry.find('{http://prismstandard.org/namespaces/basic/2.0/}issueIdentifier') is not None else None
-        entry_data['cover_date'] = entry.find('{http://prismstandard.org/namespaces/basic/2.0/}coverDate').text if entry.find('{http://prismstandard.org/namespaces/basic/2.0/}coverDate') is not None else None
-        entry_data['doi'] = entry.find('{http://prismstandard.org/namespaces/basic/2.0/}doi').text if entry.find('{http://prismstandard.org/namespaces/basic/2.0/}doi') is not None else None
-        entry_data['affiliation'] = entry.find('{http://www.w3.org/2005/Atom}affiliation/{http://purl.org/dc/elements/1.1/}affilname').text if entry.find('{http://www.w3.org/2005/Atom}affiliation/{http://purl.org/dc/elements/1.1/}affilname') is not None else None
-        entries['entry'].append(entry_data)
+    # Define namespace map
+    namespaces = {
+        'opensearch': 'http://a9.com/-/spec/opensearch/1.1/',
+        'atom': 'http://www.w3.org/2005/Atom',
+        'dc': 'http://purl.org/dc/elements/1.1/',
+        'prism': 'http://prismstandard.org/namespaces/basic/2.0/'
+    }
+    # Use the namespace map in find/findall functions
+    if keys and 'head' in keys:
+        entries['count'] = root.find('opensearch:totalResults', namespaces).text
+        entries['offset'] = root.find('opensearch:startIndex', namespaces).text
+    if keys and 'data' in keys:
+        for entry in root.findall('atom:entry', namespaces):
+            entry_data = {}
+            entry_data['title'] = entry.find('dc:title', namespaces).text
+            entry_data['creator'] = entry.find('dc:creator', namespaces).text
+            entry_data['publication_name'] = entry.find('prism:publicationName', namespaces).text if entry.find('prism:publicationName', namespaces) is not None else None
+            entry_data['volume'] = entry.find('prism:volume', namespaces).text if entry.find('prism:volume', namespaces) is not None else None
+            entry_data['issue_identifier'] = entry.find('prism:issueIdentifier', namespaces).text if entry.find('prism:issueIdentifier', namespaces) is not None else None
+            entry_data['cover_date'] = entry.find('prism:coverDate', namespaces).text if entry.find('prism:coverDate', namespaces) is not None else None
+            entry_data['doi'] = entry.find('prism:doi', namespaces).text if entry.find('prism:doi', namespaces) is not None else None
+            entry_data['affiliation'] = entry.find('atom:affiliation/dc:affilname', namespaces).text if entry.find('atom:affiliation/dc:affilname', namespaces) is not None else None
+            entries['entry'].append(entry_data)
     return entries
-
 
 # Constructing Scopus API request URL 
 scopusKey = "3e98ccbfff5ed19b801086b00dfc5e36"
 searchTerms = "climate change global warming"
+entries = {
+    'offset': 0,
+    'count': 0,
+    'entry': []
+}
 
+# Initial request getting the result information
 scopusReq = f"https://api.elsevier.com/content/search/scopus?query=all({searchTerms})&sort=coverDate&count=25&apiKey={scopusKey}&view=standard&xml-decode=true&httpAccept=application%2Fxml"
-
-# Fetching data from Scopus API
-xml_data = fetch_scopus_data(scopusReq)
-
-# if xml_data:
-#     # Parsing XML and printing extracted data
-#     entries = parse_xml(xml_data)
+header = fetch_and_parse_scopus_data(scopusReq,['head'])
+if header:
+    header['offset'] = int(header['offset'])
+    header['count'] = int(header['count'])
+    entries['count'] = header['count']
+    time.sleep(2)
     
-#     index = 1
-#     while entries['offset'] < entries['count']:
-#         for idx, entry in enumerate(entries['entry'], start=index):
-#             print(f"Entry {idx}:")
-#             for key, value in entry.items():
-#                 print(f"{key}: {value}")
-#             print("\n")
-#         index += 25
-# else:
-#     print("Failed to fetch data from Scopus API.")
+    while header['offset'] < header['count']:
+        searchReq = f"https://api.elsevier.com/content/search/scopus?query=all({searchTerms})&start={header['offset']}&sort=coverDate&count=25&apiKey={scopusKey}&view=standard&xml-decode=true&httpAccept=application%2Fxml"
+        searchResults = fetch_and_parse_scopus_data(searchReq,['data'])
+        
+        if searchResults and 'entry' in searchResults:
+            entries['entry'].extend(searchResults['entry'])
+        else: 
+            print(f"Failed to fetch data from Scopus API. (Search attempt on offset: {header['offset']})")
+        
+        animation = "|/-\\"
+        print(animation[header['offset'] % len(animation)], end = "\r")
+        header['offset'] += 25
+        # Debugging Timeout
+        # time.sleep(calculate_timeout(header['offset'] / 25))
+        # Runtime Timeout
+        time.sleep(.15)
+else:
+    print("Failed to fetch initial data from Scopus API.")
+
+print("Done")
 
 
 
