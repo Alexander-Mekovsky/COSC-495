@@ -6,12 +6,12 @@ import math
 import random
 
 # Initialize
-catNames = pd.read_csv('catNames.csv', encoding ='latin-1')
+acatFile = pd.read_csv('catNames.csv', encoding ='latin-1')
 cKeys = [
-    "code", 
+    "Code", 
     "Description"
 ]
-topNames = pd.read_csv('topCats.csv', encoding='latin-1')
+tcatFile = pd.read_csv('topCats.csv', encoding='latin-1')
 tcKeys = [
     "code", 
     "Description", 
@@ -38,9 +38,7 @@ jKeys = [
     "All Science Journal Classification Codes (ASJC)"
 ]
 
-
 allJournals = {}
-
 # Assuming journalFile is some structure where this operation is valid
 for pub, gpub, sid, stit, pissn, eissn, act, cvg, lang, mdl, aip, styp, r1, r2, r3, r4, asjc in zip(*[journalFile[key] for key in jKeys]):
     allJournals[sid] = {
@@ -61,28 +59,23 @@ for pub, gpub, sid, stit, pissn, eissn, act, cvg, lang, mdl, aip, styp, r1, r2, 
         'r4': r4,
         'asjc': asjc,
     }
-    
-print(allJournals[21100447128])
-#     allJournals[journal] = {}
-    
-# basic Journal format
-# 
-# publishername = {sourcetitle,sourcerecordid, sourcetype, issn, eissn, coverage, ajsc}
-
-
-#journalFile['All Science Journal Classification Codes (ASJC)']:
-
 
 # General category dictionaries
 superCats = defaultdict(int) # All the super groups for categories and their frequencies
+for group in tcatFile[tcKeys[2]]: 
+    superCats[group] += 1
 topCats = {} # All the top level categories and their frequencies
-# topCats = {code = {name = exname, freq = freq}}
+for code, desc in zip(*[tcatFile[key] for key in tcKeys[:2]]):
+    topCats[str(code)] = {
+        'desc': desc,
+        'freq':  0
+    }
 allCats = {} # All the categories and their codes and frequencies
-# allCats = {code = {name = exname, freq = freq}}
-
-
-
-
+for code, desc in zip(*[acatFile[key] for key in cKeys]):
+    allCats[str(code)] = {
+        'desc': desc,
+        'freq':  0
+    }
 
 # Network Dictionaries for categories
 journalCats = defaultdict(int) # The frequency of each # of linked categories for a single journal
@@ -98,18 +91,18 @@ for catCodes in journalFile['All Science Journal Classification Codes (ASJC)']:
     for i, code in enumerate(catCodes):
         # Loads the base dictionaries
         if code[:2] != "na":
-            allCats[code] += 1
-            topCats[code[:2]+"**"] += 1
+            allCats[code]['freq'] += 1
+            topCats[code[:2]+"**"]['freq'] += 1
             for linkedCode in catCodes[i+1:]:
                 if code[:2] != linkedCode[:2] and code[:2] != "na":
                     catNetEdges[(code[:2]+"**", linkedCode[:2]+"**")] += 1
+
 # Bar chart: Displays the information of journalCats
 # plt.bar(journalCats.keys(), journalCats.values())
 # plt.xlabel('Number of Categories')
 # plt.ylabel('Number of Articles')
 # plt.title('Frequency of Categories')
 # plt.show()# Print the counts for the main categories
-
 
 # # Bar chart: Displays the information on most common categories
 # plt.figure(figsize=(10, 6))  # Adjust figure size as needed
@@ -171,7 +164,6 @@ for catCodes in journalFile['All Science Journal Classification Codes (ASJC)']:
 # Visualize the network graph
 # catNet.toggle_physics(False)
 # catNet.show('catLinks.html',notebook=False)
-
 
 import requests
 import xml.etree.ElementTree as ET
