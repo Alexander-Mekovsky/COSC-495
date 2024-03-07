@@ -217,12 +217,12 @@ def parse_xml(xml_data, keys):
         for entry in root.findall('atom:entry', namespaces):
             entry_data = {}
             entry_data['title'] = entry.find('dc:title', namespaces).text
-            entry_data['creator'] = entry.find('dc:creator', namespaces).text
+            entry_data['creator'] = entry.find('dc:creator', namespaces).text if entry.find('dc:creator', namespaces) is not None else None
             entry_data['publication_name'] = entry.find('prism:publicationName', namespaces).text if entry.find('prism:publicationName', namespaces) is not None else None
             entry_data['volume'] = entry.find('prism:volume', namespaces).text if entry.find('prism:volume', namespaces) is not None else None
             entry_data['issue_identifier'] = entry.find('prism:issueIdentifier', namespaces).text if entry.find('prism:issueIdentifier', namespaces) is not None else None
             entry_data['cover_date'] = entry.find('prism:coverDate', namespaces).text if entry.find('prism:coverDate', namespaces) is not None else None
-            entry_data['doi'] = entry.find('prism:doi', namespaces).text if entry.find('prism:doi', namespaces) is not None else None
+            entry_data['doi'] = entry.find('prism:doi').text if entry.find('prism:doi') is not None else None
             entry_data['affiliation'] = entry.find('atom:affiliation/dc:affilname', namespaces).text if entry.find('atom:affiliation/dc:affilname', namespaces) is not None else None
             
             entries['entry'].append(entry_data)
@@ -230,14 +230,14 @@ def parse_xml(xml_data, keys):
 
 # Constructing Scopus API request URL 
 scopusKey = "3e98ccbfff5ed19b801086b00dfc5e36"
-searchTerms = "climate change global warming"
+searchTerms = "climate change global warming ocean atmosphere moon"
 entries = {
     'offset': 0,
     'count': 0,
     'entry': []
 }
 
-filename = searchTerms.replace(" ", "-") + ".csv"
+filename = 'test.csv'
 with open(filename, 'w', newline='') as csvfile:
     fn = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
     fn.writerow(["ID", "DOI","Title", "Creator", "Publication Name", "Volume", "ISSN", "Cover Date", "Affiliation"])
@@ -258,12 +258,12 @@ with open(filename, 'w', newline='') as csvfile:
             if searchResults and 'entry' in searchResults:
                     # entries['entry'].extend(searchResults['entry'])
                     try:
-                        fn.writerow(["ID", "DOI","Title", "Creator", "Publication Name", "Volume", "ISSN", "Cover Date", "Affiliation"])
-                        fn.writerow(header['offset'], searchResults['doi'],searchResults['title'], searchResults['creator'], 
-                                searchResults['publication_name'], searchResults['volume'], searchResults['issue_identifier'],
-                                searchResults['cover_data'], searchResults['affiliation'])
-                    except Exception:
-                        print(Exception)
+                        for i,result in enumerate(searchResults['entry']):                         
+                            fn.writerow(i + header['offset'], searchResults['doi'],searchResults['title'], searchResults['creator'], 
+                                result['publication_name'], result['volume'], result['issue_identifier'],
+                                result['cover_data'], result['affiliation'])
+                    except Exception as e:
+                        print(e)
                         
             else: 
                 print(f"Failed to fetch data from Scopus API. (Search attempt on offset: {header['offset']})")
