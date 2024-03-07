@@ -4,6 +4,13 @@ from collections import defaultdict #defaults dict entry to 0
 from pyvis.network import Network
 import math
 import random
+import atexit
+import csv
+
+def goodbye():
+    print(header['offset'], entries['count'],searchTerms)
+atexit.register(goodbye)
+
 
 
 # Initialize
@@ -217,6 +224,7 @@ def parse_xml(xml_data, keys):
             entry_data['cover_date'] = entry.find('prism:coverDate', namespaces).text if entry.find('prism:coverDate', namespaces) is not None else None
             entry_data['doi'] = entry.find('prism:doi', namespaces).text if entry.find('prism:doi', namespaces) is not None else None
             entry_data['affiliation'] = entry.find('atom:affiliation/dc:affilname', namespaces).text if entry.find('atom:affiliation/dc:affilname', namespaces) is not None else None
+            
             entries['entry'].append(entry_data)
     return entries
 
@@ -229,33 +237,47 @@ entries = {
     'entry': []
 }
 
-# Initial request getting the result information
-scopusReq = f"https://api.elsevier.com/content/search/scopus?query=all({searchTerms})&sort=coverDate&count=25&apiKey={scopusKey}&view=standard&xml-decode=true&httpAccept=application%2Fxml"
-header = fetch_and_parse_scopus_data(scopusReq,['head'])
-if header:
-    header['offset'] = int(header['offset'])
-    header['count'] = int(header['count'])
-    entries['count'] = header['count']
-    time.sleep(2)
-    
-    while header['offset'] < header['count']:
-        searchReq = f"https://api.elsevier.com/content/search/scopus?query=all({searchTerms})&start={header['offset']}&sort=coverDate&count=25&apiKey={scopusKey}&view=standard&xml-decode=true&httpAccept=application%2Fxml"
-        searchResults = fetch_and_parse_scopus_data(searchReq,['data'])
-        
-        if searchResults and 'entry' in searchResults:
-            entries['entry'].extend(searchResults['entry'])
-        else: 
-            print(f"Failed to fetch data from Scopus API. (Search attempt on offset: {header['offset']})")
-        
-        animation = "|/-\\"
-        print(animation[header['offset'] % len(animation)], end = "\r")
-        header['offset'] += 25
-        # Debugging Timeout
-        time.sleep(calculate_timeout(header['offset'] / 25))
-        # Runtime Timeout
-        # time.sleep(.15)
-else:
-    print("Failed to fetch initial data from Scopus API.")
+filename = searchTerms.replace(" ", "-") + ".csv"
+with open(filename, 'w', newline='') as csvfile:
+    fn = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    fn.writerow(["ID", "DOI","Title", "Creator", "Publication Name", "Volume", "ISSN", "Cover Date", "Affiliation"])
+
+    # Initial request getting the result information
+    scopusReq = f"https://api.elsevier.com/content/search/scopus?query=all({searchTerms})&sort=coverDate&count=25&apiKey={scopusKey}&view=standard&xml-decode=true&httpAccept=application%2Fxml"
+    header = fetch_and_parse_scopus_data(scopusReq,['head'])
+    if header:
+        header['offset'] = int(header['offset'])
+        header['count'] = int(header['count'])
+        entries['count'] = header['count']
+        time.sleep(2)
+
+        while header['offset'] < header['count']:
+            
+            searchReq = f"https://api.elsevier.com/content/search/scopus?query=all({searchTerms})&start={header['offset']}&sort=coverDate&count=25&apiKey={scopusKey}&view=standard&xml-decode=true&httpAccept=application%2Fxml"
+            searchResults = fetch_and_parse_scopus_data(searchReq,['data'])
+            if searchResults and 'entry' in searchResults:
+                    # entries['entry'].extend(searchResults['entry'])
+                    try:
+                        fn.writerow(["ID", "DOI","Title", "Creator", "Publication Name", "Volume", "ISSN", "Cover Date", "Affiliation"])
+                        fn.writerow(header['offset'], searchResults['doi'],searchResults['title'], searchResults['creator'], 
+                                searchResults['publication_name'], searchResults['volume'], searchResults['issue_identifier'],
+                                searchResults['cover_data'], searchResults['affiliation'])
+                    except Exception:
+                        print(Exception)
+                        
+            else: 
+                print(f"Failed to fetch data from Scopus API. (Search attempt on offset: {header['offset']})")
+            animation = "|/-\\"
+            print(header['offset'],"/",entries['count'],animation[header['offset'] % len(animation)], end = "\r")
+            header['offset'] += 25
+            
+
+            # Debugging Timeout
+            # time.sleep(calculate_timeout(header['offset'] / 25))
+            # Runtime Timeout
+            time.sleep(.25)
+    else:
+        print("Failed to fetch initial data from Scopus API.")
 
 print("Done")
 
