@@ -25,15 +25,22 @@ typedef struct ThreadControl
 // Function to increment calls made in the current second
 // Parameters:
 //   control: Pointer to the ThreadControl structure
-void increment_calls_this_second(ThreadControl *control)
+void *increment_calls_this_second(ThreadControl *control, char *endpoint)
 {
+
+    if (endpoint == NULL) {
+        return (void *)0; // Exit the thread or handle termination
+    }
+    
     pthread_mutex_lock(&control->calls_mutex);
     while (control->calls_this_second >= MAX_CALLS_PER_SECOND)
     {
         pthread_cond_wait(&control->can_call, &control->calls_mutex);
     }
+
     control->calls_this_second++;
     pthread_mutex_unlock(&control->calls_mutex);
+    return (void *)-1;
 }
 
 // Function to increment the total call count
@@ -85,6 +92,14 @@ void myenqueue(TaskQueue *q, void *ep)
 
     pthread_mutex_unlock(&q->lock);
 }
+
+// Structure representing arguments to be passed to a thread
+typedef struct ThreadArguments
+{
+    TaskQueue *queue;       // Pointer to the task queue
+    ThreadControl *control; // Pointer to the thread control structure
+} ThreadArguments;
+
 
 // Function to dequeue a task from the task queue
 // Parameters:
@@ -150,13 +165,6 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
     return written;
 }
 
-// Structure representing arguments to be passed to a thread
-typedef struct ThreadArguments
-{
-    TaskQueue *queue;       // Pointer to the task queue
-    ThreadControl *control; // Pointer to the thread control structure
-} ThreadArguments;
-
 // Function representing the action of making a call (thread function)
 // Parameters:
 //   arg: Pointer to the ThreadArguments structure containing task queue and thread control
@@ -167,83 +175,94 @@ void *make_call(void *arg)
     ThreadArguments *args = (ThreadArguments *)arg;
     TaskQueue *queue = args->queue;
     ThreadControl *control = args->control;
-
-    while (queue->head != NULL)
-    {
-        char *endpoint = (char *)mydequeue(queue); // Dequeue a task from the task queue
-        if (endpoint == NULL)
-            continue; // Proceed to the next iteration if dequeue returns NULL
-
+    char *endpoint;
+    while(endpoint != NULL){
+        endpoint = (char *)mydequeue(queue); // Dequeue a task from the task queue
+        if (endpoint == NULL){
+            return (void*)0;
+        }
+            
         FILE *fp;
         char filename[FILENAME_MAX];
-        int currentCount;
 
-        pthread_mutex_lock(&control->count_mutex);
-		control->total_calls++;
-        currentCount = control->total_calls;
-        pthread_mutex_unlock(&control->count_mutex);
+        const char *startPtr = strstr(endpoint, "&start=");
+        int startValue = 0;
+    
+        if (startPtr != NULL) {
+            // Attempt to read the integer value right after "&start="
+            sscanf(startPtr, "&start=%d", &startValue);
+        } else {
+            // Handle the case where "&start=" is not found
+            fprintf(stderr,"The '&start=' parameter was not found in the URL.\n");
+            return (void *)103;
+        }
 
         // Generate filename based on the current call count
-        sprintf(filename, "/tmp/response_%d.xml", currentCount);
+        sprintf(filename, "/tmp/response_%d.xml", startValue);
         fp = fopen(filename, "wb");
 
         if (fp == NULL)
         {
-            perror("Cannot open output file");
-            return (void *)101; // Return an error code if file opening fails
+            fprintf(stderr, "Error: Cannot read file: %s\n",filename);
+            return (void*)101; // Return an error code if file opening fails
         }
 
         CURL *curl = curl_easy_init(); // Initialize a CURL handle
         if (curl)
         {
-			char *output = curl_easy_escape(curl, endpoint, strlen(endpoint));
             curl_easy_setopt(curl, CURLOPT_URL, endpoint);
-			curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);             // Set the URL to call
+			// curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);             // Set the URL to call
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);             // Set the file stream for writing response data
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data); // Set the write function
 
-            increment_calls_this_second(control);   // Increment the call count for the current second
+            if(increment_calls_this_second(control,endpoint) == 0)
+                return (void *)0;   // Increment the call count for the current second
+            
+            struct timeval start_time, end_time;
+            gettimeofday(&start_time, NULL); // Get the start time
             CURLcode res = curl_easy_perform(curl); // Perform the CURL operation
+            gettimeofday(&end_time, NULL);
+            double duration = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1000000.0;
+            fprintf(stderr,"cURL operation took %.6f seconds\n", duration);
             if (res != CURLE_OK)
             {
                 fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
                 fprintf(stderr, "url: %s\n",endpoint);
 				curl_easy_cleanup(curl);
                 fclose(fp);
-                return "done"; // Return an error code if CURL operation fails
+                return (void*)102; // Return an error code if CURL operation fails
             }
             curl_easy_cleanup(curl); // Cleanup the CURL handle
         }
         fclose(fp);     // Close the file stream
         free(endpoint); // Free the memory allocated for the endpoint string
     }
-    return NULL; // Return NULL upon successful completion
+    return (void*)0;
 }
 
 // Function to enforce call rate by limiting calls per second
 // Parameters:
 //   args: A pointer to ThreadControl structure containing thread control parameters
 void *enforce_call_rate(void *args)
-{
+{   
     ThreadControl *control = (ThreadControl *)args;
 
     while (1)
     {
         sleep(1);
         pthread_mutex_lock(&control->mutex);
-        if (control->terminate_flag)
+        if (control->terminate_flag == 1)
         {
             pthread_mutex_unlock(&control->mutex);
-            break;
+            return (void *)0;
         }
         pthread_mutex_unlock(&control->mutex);
 
         pthread_mutex_lock(&control->calls_mutex);
         control->calls_this_second = 0;
-        pthread_cond_signal(&control->can_call);
+        pthread_cond_broadcast(&control->can_call);
         pthread_mutex_unlock(&control->calls_mutex);
     }
-    return NULL;
 }
 
 // Function to get response from API endpoints
@@ -292,14 +311,15 @@ static PyObject *get_response(PyObject *self, PyObject *args)
         myenqueue(tqueue, strdup(endpoint));
     }
 
-    ThreadControl control = {
+    ThreadControl tcontrol = {
         .terminate_flag = 0,
         .calls_this_second = 0,
         .total_calls = 0,
         .mutex = PTHREAD_MUTEX_INITIALIZER,
         .calls_mutex = PTHREAD_MUTEX_INITIALIZER,
         .count_mutex = PTHREAD_MUTEX_INITIALIZER,
-        .can_call = PTHREAD_COND_INITIALIZER};
+        .can_call = PTHREAD_COND_INITIALIZER
+        };
 
     ThreadArguments *targs = malloc(sizeof(ThreadArguments));
 	if (!targs)
@@ -307,12 +327,12 @@ static PyObject *get_response(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_RuntimeError, "failed to allocate ThreadArguments.");
         return NULL;
     }
-	targs->control = &control;
+	targs->control = &tcontrol;
 	targs->queue = tqueue;
 	
 
     pthread_t rateLimiterThread;
-    pthread_create(&rateLimiterThread, NULL, enforce_call_rate, (void *)&control);
+    pthread_create(&rateLimiterThread, NULL, enforce_call_rate, (void *)&tcontrol);
 
     int num_threads = MAX_CALLS_PER_SECOND * floor(AVG_CALL_DELAY);
     pthread_t threads[num_threads];
@@ -330,18 +350,25 @@ static PyObject *get_response(PyObject *self, PyObject *args)
     {
         pthread_join(threads[i], NULL);
     }
+
+    pthread_mutex_lock(&tcontrol.mutex);
+    tcontrol.terminate_flag = 1;
+    pthread_mutex_unlock(&tcontrol.mutex);
     pthread_join(rateLimiterThread, NULL);
 
+
     // Clear all allocated variables
-    pthread_mutex_destroy(&control.mutex);
-    pthread_mutex_destroy(&control.count_mutex);
-    pthread_mutex_destroy(&control.calls_mutex);
-    pthread_cond_destroy(&control.can_call);
+    pthread_mutex_destroy(&tcontrol.mutex);
+    pthread_mutex_destroy(&tcontrol.count_mutex);
+    pthread_mutex_destroy(&tcontrol.calls_mutex);
+    pthread_cond_destroy(&tcontrol.can_call);
     pthread_mutex_destroy(&tqueue->lock);
+
 
     clear_task_queue(tqueue);
     free(tqueue);
 	free(targs);
+
     return Py_BuildValue("s", "done");
 }
 

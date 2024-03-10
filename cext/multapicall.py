@@ -107,8 +107,10 @@ def caller(terms, key, total, increment):
         offset += increment
 
     # Make concurrent API calls
+    starttime = time.time()
     result = myapicall.get_response(urls)
-    
+    endtime = time.time()
+    print(endtime-starttime, " seconds\n")
     # Set event flag if all API calls are completed
     if result == "done":
         caller_finished_event.set()
@@ -212,8 +214,9 @@ def process_scopus_data(terms, key, increment=25, start=0):
     API_BASE_URL = f"https://api.elsevier.com/content/search/scopus?query=all({terms})&sort=coverDate&start={offset}&count={nResults}&apiKey={key}&view=standard&xml-decode=true&httpAccept=application%2Fxml"
     HEADERS = {'Accept': 'application/xml'}
 
+    
     response = requests.get(API_BASE_URL, headers=HEADERS)
-
+    
     if response.status_code == 200:
         xml = response.text
         total = int(parse_xml(xml, 'head'))
@@ -239,7 +242,7 @@ def process_scopus_data(terms, key, increment=25, start=0):
 
 def main():
     scopus_key = "3e98ccbfff5ed19b801086b00dfc5e36"
-    search_terms = "climate change global warming ocean atmosphere moon star"
+    search_terms = "climate change global warming ocean atmosphere moon"
     res = process_scopus_data(search_terms, scopus_key)
     print(res)
 if __name__ == "__main__":
