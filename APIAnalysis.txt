@@ -1,0 +1,50 @@
+Without delays and multiprocessing/threading:
+-For 338 results it took 52.70870113372803 seconds...
+        Averages:
+        API REQUEST TIME: 3.5081841786702475 seconds on 15 attempts
+            Max: 4.956922769546509 seconds
+            Min: 2.2610180377960205 seconds
+            Median: 3.15390682220459
+            Mode: 2.733408212661743
+            Std. Dev.: 0.8198141376325683
+
+        API RESPONSE PARSE TIME: 0.0037443002065022787 seconds on 15 attempts
+            Max: 0.010651588439941406 seconds
+            Min: 0.0009984970092773438 seconds
+            Median: 0.0020072460174560547
+            Mode: 0.0009984970092773438
+            Std. Dev.: 0.003085084002149687
+
+        WRITE PARSED: 0.0018762009484427316 seconds on 14 attempts
+            Max: 0.004408121109008789 seconds
+            Min: 0.0 seconds
+            Median: 0.0017508268356323242
+            Mode: 0.0
+            Std. Dev.: 0.0013369135225064878
+
+-Estimation: 
+-For processing 443,000 results with 17,720 API calls, the estimated times would be as follows:
+
+	Total API Request Time: 62,165.02 seconds
+	Total API Response Parse Time: 66.35 seconds
+	Total Write Parsed Time: 33.25 seconds
+	---------------------------------------------
+	Total Time: 62,264.62 seconds // 17.29 hours.
+
+Without delays and multithreading the API calls with 8 threads:
+-For processing 140 API calls over 60 seconds:
+	Total Waiting Time: 0.00 seconds
+	Total Active Time: 491.30 seconds
+	Total Downtime: -11.30 seconds
+	API Calls per Second: 2.33
+-Estimation 
+-For processing 443,000 results with 17,720 API calls, the estimated times would be as follows:
+	Total API Request Time:  7,605.15 seconds
+	Total API Response Parse Time: 66.35 seconds
+	Total Write Parsed Time: 33.25 seconds
+	---------------------------------------------
+	Total Time: 7,704.75 seconds // 2.1402 hours.
+
+Without delays and multithreading the API calls with call rate control(scheduler) 
+
+

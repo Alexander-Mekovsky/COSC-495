@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 import sys
 import time
 import csv
+import numpy as np
+import statistics
 
 def calculate_timeout(n, max_timeout=25):
     """
@@ -32,6 +34,7 @@ def parse_xml(xml_data, keys):
     Returns:
     - dict: A dictionary containing the parsed XML data.
     """
+    start_timer3 = time.time()
     entries = {'entry': []}
     root = ET.fromstring(xml_data)
     
@@ -80,7 +83,8 @@ def parse_xml(xml_data, keys):
                         entry_data['affiliation'] += affilcountry.text + "x"
 
             entries['entry'].append(entry_data)
-    return entries
+    end_timer3 = time.time()
+    return entries, end_timer3 - start_timer3
 
 
 def fetch_and_parse_scopus_data(scopus_url, keys):
@@ -97,10 +101,12 @@ def fetch_and_parse_scopus_data(scopus_url, keys):
     headers = {
         'Accept': 'application/xml'
     }
+    start_timer2 = time.time()
     response = requests.get(scopus_url, headers=headers)
     if response.status_code == 200:
         xml_data = response.text
-        return parse_xml(xml_data, keys)
+        end_timer2 = time.time()
+        return parse_xml(xml_data, keys), end_timer2 - start_timer2
     else:
         print("Error fetching data from Scopus API:", response.status_code)
         return None
@@ -116,6 +122,10 @@ def index_scopus_response(key, terms):
     Returns:
     - str: A status message indicating whether the indexing was successful or not.
     """
+    start_time = time.time()
+    timer2 = []
+    timer3 = []
+    timer4 = []
     entries = {'offset': 0, 'count': 0, 'entry': []}
     filename = terms.replace(" ", "-") + ".csv"
     with open(filename, 'w', newline='', encoding='utf-8', errors='replace') as file:
@@ -124,17 +134,23 @@ def index_scopus_response(key, terms):
         
         # Initial request to get total count of results.
         headerReq = f"https://api.elsevier.com/content/search/scopus?query=all({terms})&sort=coverDate&count=0&apiKey={key}&view=standard&xml-decode=true&httpAccept=application%2Fxml"
-        header = fetch_and_parse_scopus_data(headerReq, ['head'])
-        
+        header, time2 = fetch_and_parse_scopus_data(headerReq, ['head'])
+        header, time3 = header
+        timer2.append(time2)
+        timer3.append(time3)
         if header:
             header['offset'] = 0
             header['count'] = int(header['count'])
             entries['count'] = header['count']
-            time.sleep(5)
+            # time.sleep(5)
             
             while header['offset'] < header['count']:
                 dataReq = f"https://api.elsevier.com/content/search/scopus?query=all({terms})&start={header['offset']}&sort=coverDate&count=25&apiKey={key}&view=standard&xml-decode=true&httpAccept=application%2Fxml"
-                data = fetch_and_parse_scopus_data(dataReq, ['data'])
+                data, time2 = fetch_and_parse_scopus_data(dataReq, ['data'])
+                data, time3 = data
+                timer2.append(time2)
+                timer3.append(time3)
+                start_time4 = time.time()
                 if data and len(data['entry']) != 0:
                     entries['entry'].extend(data['entry'])
                     try:
@@ -153,9 +169,62 @@ def index_scopus_response(key, terms):
                         print("Error: ", e)
                 else: 
                     print(f"Failed to fetch data from Scopus API. (Search attempt on offset: {header['offset']})")
-                time.sleep(0.25)
+                # time.sleep(0.25)
                 # time.sleep(calculate_timeout(header['offset'] / 25))
+                end_timer4 = time.time()
+                timer4.append(end_timer4-start_time4)
         else:
             return "Failed to fetch initial data from Scopus API."
-        
-    return "Success"
+    end_time = time.time()
+    out = result = """\
+        For {count} results it took {time} seconds...
+
+        Averages:
+        API REQUEST TIME: {req_avg} seconds on {req_count} attempts
+            Max: {req_max} seconds
+            Min: {req_min} seconds
+            Median: {req_median}
+            Mode: {req_mode}
+            Std. Dev.: {req_std_dev}
+
+        API RESPONSE PARSE TIME: {parse_avg} seconds on {parse_count} attempts
+            Max: {parse_max} seconds
+            Min: {parse_min} seconds
+            Median: {parse_median}
+            Mode: {parse_mode}
+            Std. Dev.: {parse_std_dev}
+
+        WRITE PARSED: {write_avg} seconds on {write_count} attempts
+            Max: {write_max} seconds
+            Min: {write_min} seconds
+            Median: {write_median}
+            Mode: {write_mode}
+            Std. Dev.: {write_std_dev}
+        """.format(
+            count=header['count'],
+            time=end_time - start_time,
+            req_avg=sum(timer2) / len(timer2),
+            req_count=len(timer2),
+            req_max=np.max(timer2),
+            req_min=np.min(timer2),
+            req_median=np.median(timer2),
+            req_mode=statistics.mode(timer2),
+            req_std_dev=np.std(timer2),
+            parse_avg=sum(timer3) / len(timer3),
+            parse_count=len(timer3),
+            parse_max=np.max(timer3),
+            parse_min=np.min(timer3),
+            parse_median=np.median(timer3),
+            parse_mode=statistics.mode(timer3),
+            parse_std_dev=np.std(timer3),
+            write_avg=sum(timer4) / len(timer4),
+            write_count=len(timer4),
+            write_max=np.max(timer4),
+            write_min=np.min(timer4),
+            write_median=np.median(timer4),
+            write_mode=statistics.mode(timer4),
+            write_std_dev=np.std(timer4)
+        )
+
+
+    return out
