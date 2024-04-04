@@ -7,8 +7,8 @@
 #include <math.h>
 #include <string.h>
 
-#define MAX_CALLS_PER_SECOND 8
-#define AVG_CALL_DELAY 3.50818417867
+#define MAX_CALLS_PER_SECOND 7
+#define AVG_CALL_DELAY 4  //3.50818417867
 
 // Structure to control thread behavior
 typedef struct ThreadControl
@@ -33,11 +33,12 @@ void *increment_calls_this_second(ThreadControl *control, char *endpoint)
     }
     
     pthread_mutex_lock(&control->calls_mutex);
+    
     while (control->calls_this_second >= MAX_CALLS_PER_SECOND)
     {
         pthread_cond_wait(&control->can_call, &control->calls_mutex);
     }
-
+    // fprintf(stderr, "Calls this second: %d\n", control->calls_this_second);
     control->calls_this_second++;
     pthread_mutex_unlock(&control->calls_mutex);
     return (void *)-1;
@@ -210,9 +211,9 @@ void *make_call(void *arg)
         CURL *curl = curl_easy_init(); // Initialize a CURL handle
         if (curl)
         {
-            curl_easy_setopt(curl, CURLOPT_URL, endpoint);
-			// curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);             // Set the URL to call
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);             // Set the file stream for writing response data
+            curl_easy_setopt(curl, CURLOPT_URL, endpoint);              // Set the URL to call
+			// curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);             
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);             // Sets the file stream for writing response data
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data); // Set the write function
 
             if(increment_calls_this_second(control,endpoint) == 0)
@@ -224,6 +225,7 @@ void *make_call(void *arg)
             gettimeofday(&end_time, NULL);
             double duration = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1000000.0;
             fprintf(stderr,"cURL operation took %.6f seconds\n", duration);
+            
             if (res != CURLE_OK)
             {
                 fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));

@@ -6,9 +6,9 @@ import numpy as np
 # import statistics
 import myapicall
 import os
-import threading
 import requests
 import time
+from path import Path
 
 
 def parse_xml(xml_file, data_type):
@@ -30,9 +30,12 @@ def parse_xml(xml_file, data_type):
         'dc': 'http://purl.org/dc/elements/1.1/',
         'prism': 'http://prismstandard.org/namespaces/basic/2.0/'
     }
-
+    # print(xml_file)
     entries = {'entry': []}
-    root = ET.fromstring(xml_file)  # Use parse() to read from a file
+    if data_type == 'head':
+        root = ET.fromstring(xml_file)
+    else:
+        root = ET.parse(xml_file)  # Use parse() to read from a file
     
     if data_type == 'head':
         return root.find('opensearch:totalResults', NAMESPACES).text
@@ -81,7 +84,6 @@ def parse_xml(xml_file, data_type):
         return 2
 
 
-caller_finished_event = threading.Event()
 def caller(terms, key, total, increment):
     """
     Initiates API calls to fetch data from the Scopus API and sets an event flag upon completion.
@@ -100,7 +102,7 @@ def caller(terms, key, total, increment):
     urls = []
 
     # Compiles a list of API calls
-    while offset < total:
+    while offset < total and offset < 5000:
         url = f"https://api.elsevier.com/content/search/scopus?query=all({terms})&sort=coverDate&start={offset}&count={nResults}&apiKey={key}&view=standard&xml-decode=true&httpAccept=application%2Fxml"
         url = url.replace(" ", "%20")
         urls.append(url)
@@ -111,9 +113,9 @@ def caller(terms, key, total, increment):
     result = myapicall.get_response(urls)
     endtime = time.time()
     print(endtime-starttime, " seconds\n")
+    # Expected value = 2212.5
     # Set event flag if all API calls are completed
     if result == "done":
-        caller_finished_event.set()
         return True
     else:
         print("Error making API calls:", result)
@@ -139,7 +141,7 @@ def any_file_of_format(directory, file_format):
         print(f"Error occurred while checking file format: {e}")
         return False
 
-def write_csv(data, terms):
+def write_csv(data, terms, first):
     """
     Writes parsed data into a CSV file.
 
@@ -152,9 +154,10 @@ def write_csv(data, terms):
     """
     filename = terms.replace(" ", "-") + ".csv"
     try:
-        with open(filename, 'w', newline='', encoding='utf-8', errors='replace') as file:
+        with open(filename, 'a', newline='', encoding='utf-8') as file:
             wr = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            wr.writerow(["Scopus ID", "Source ID", "ISSN(IA)","eISSN(IA)","ISBN(IA)", "Title", "Creator", "Publication Name", "Cover Date","Cited by #", "Type", "Subtype","Article number (IA)", "Volume(IA)","DOI(IA)","Affiliation(IA)"])
+            if first == True:
+                wr.writerow(["Scopus ID", "Source ID", "ISSN(IA)","eISSN(IA)","ISBN(IA)", "Title", "Creator", "Publication Name", "Cover Date","Cited by #", "Type", "Subtype","Article number (IA)", "Volume(IA)","DOI(IA)","Affiliation(IA)"])
 
             for result in data['entry']:
                 wr.writerow([result.get('id'), result.get('source_id'), result.get('issn'), 
@@ -177,22 +180,31 @@ def parser(terms, total):
         total (int): Total number of results to parse.
     """
     offset = 0
-    while not caller_finished_event.is_set() and not any_file_of_format("/tmp",".xml"):
-        xml_file_path = next((file for file in os.listdir('/tmp') if file.endswith('.xml')), None)
-        if not os.path.exists(f"/tmp/{xml_file_path}"):
-            print("Error: File path error")
-        while os.path.getsize(f"/tmp/{xml_file_path}") == 0:
-            time.sleep(1)
+    set =True
+    while offset < 5000:
+        offset = offset+25
+        filepath = Path("/tmp")
+        filename = filepath.joinpath("response_"+ str(offset) + ".xml")
+        abspath = filename.abspath()
+        print(abspath)
+        
 
-        data = parse_xml(f"/tmp/{xml_file_path}")
-        os.remove(f"/tmp/{xml_file_path}")
+        if not os.path.exists(abspath):
+            print("Error: File path error"+abspath)
+            continue
+        if os.path.getsize(abspath) < 1000:
+            continue
+        data = parse_xml(abspath,'data')
+        os.remove(abspath)
         if data and len(data['entry']) != 0:
-            status_code = write_csv(data, terms)
+            status_code = write_csv(data, terms, set)
+            set = False
             if status_code != 0:
                 return status_code
             offset += len(data['entry'])
         else: 
             print(f"Failed to fetch data from Scopus API. (Search attempt on offset: {offset})")
+            return 201
     return 0
 
 def process_scopus_data(terms, key, increment=25, start=0):
@@ -220,29 +232,21 @@ def process_scopus_data(terms, key, increment=25, start=0):
     if response.status_code == 200:
         xml = response.text
         total = int(parse_xml(xml, 'head'))
-        
+        print(total)
         # Sleep for 1 second to avoid overwhelming the API
         time.sleep(1)
         
-        # Multithreading calls
-        caller_thread = threading.Thread(target=caller, args=(terms, key, total, increment), name="CallerThread")
-        parser_thread = threading.Thread(target=parser, args=(terms, total), name="ParserThread")
-        
-        # Start the threads
-        caller_thread.start()
-        parser_thread.start()
-
-        # Wait for the threads to complete
-        caller_thread.join()
-        parser_thread.join()
-        
+        caller(terms,key,total,increment)
+        parser(terms,total)
     else:
         print(f"ERROR: Initial header request for search terms '{terms}' has been unsuccessful (RESPONSE_CODE: {response.status_code})")
         return 1
 
 def main():
+    # 5335658c3e71c91bed47e6a055f22a6
     scopus_key = "3e98ccbfff5ed19b801086b00dfc5e36"
-    search_terms = "climate change global warming ocean atmosphere moon"
+    search_terms = "climate change global warming" 
+    # ocean atmosphere moon star
     res = process_scopus_data(search_terms, scopus_key)
     print(res)
 if __name__ == "__main__":
