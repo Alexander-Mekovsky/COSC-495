@@ -1,7 +1,7 @@
 from setuptools import setup, Extension
 
-module = Extension('myapicall',
-                    sources = ['myapicall.c'],
+module = Extension('caller',
+                    sources = ['caller.c'],
                     libraries = ['curl', 'pthread'])
 
 setup(name = 'MyApiCallPackage',

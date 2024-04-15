@@ -229,7 +229,7 @@ def process_scopus_data(terms, key, increment=25, start=0):
     
     response = requests.get(API_BASE_URL, headers=HEADERS)
     
-    if response.status_code == 200:
+    if response.status_code == 200:       
         xml = response.text
         total = int(parse_xml(xml, 'head'))
         print(total)

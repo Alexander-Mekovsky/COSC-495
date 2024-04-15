@@ -347,6 +347,8 @@ static PyObject *get_response(PyObject *self, PyObject *args)
         }
     }
 
+    //multi handler here
+
     // Wait for all calls to be finished or crash
     for (int i = 0; i < num_threads; i++)
     {
