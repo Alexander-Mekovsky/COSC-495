@@ -5,14 +5,16 @@ The curl_init is in the wrong place, since it currently is in the thread loop cr
 Moving the curl_global_init to the main thread of the process should fix this issue but mutex locks will be a must when modifying the handles of each call. Make sure that each handle has the CURL_KEEPALIVE option enabled. 
 
 Adding the cURL multi interface to handle the GET requests to allow non-blocking behavior on the calls. The multi handle is initialized in the main process thread to ensure that each process has access to the multi structure. A control structure will be needed to conditionally add handles to the multi and perform it. curl_multi_init()
+- typedef struct HandleControl (line )
 
 The main process of the program will also need to add a while loop to ensure that multi_perform is consistently processing all data that is received or when any new handles are introduced - this will provide the best efficiency and avoid processing throttles. This loop will also check if the queue is empty, continuing to perform until both the queue is empty and all handles have been fully processed. curl_multi_perform() curl_multi_wait()
 
 Adding processing to the WriteCallbackFunction for each cURL request will maintain that unnecessary information is not stored, even temporarily. Using the libxml library(added to the setup), the callback function will process each response in chunks processing all of the necessary data into a csv file while avoiding any race conditions(the main thread handles all callbacks) xmlParserCtxtPtr.
+- typedef struct WriteData (line )
 
 Updating the timing of the by adding a custom data structure to each handle then compiling them on completion while adding a debug/analysis option to ensure that such timing information is only included by option. CURLINFO_PRIVATE option.
 
 The thread control structure will also need to contain a xmlParserCtxtPtr as to have separate contexts to avoid responses from mixing the context. This structure will need to be passed to the WriteCallbackFunction. WRITE_DATA
 
-Multiplexing/pipelining could be enabled if the server supports HTTP/2 across a HTTP/1.1 protocol HTTP/1.1>HTTP/2 since HTTP/2.2 may not be enabled on client computer.
+Multiplexing/pipelining could be enabled if the server supports HTTP/2 across a HTTP/1.1 protocol HTTP/1.1>HTTP/2 since HTTP/2 may not be enabled on client computer.
 
