@@ -5,8 +5,9 @@
 #include <curl/curl.h>
 
 // Optional Uses
+#include <stdlib.h>
 #include <pthread.h>
-#include <threading.h>
+#include "threading.h"
 #include <libxml/parser.h>
 
 typedef struct {

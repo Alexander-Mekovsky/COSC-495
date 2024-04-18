@@ -1,5 +1,4 @@
-#include "threading.h"
-
+#include "../include/threading.h"
 
 // Initialize the thread control structure
 ThreadControl *controlInit() {

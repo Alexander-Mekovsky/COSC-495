@@ -1,5 +1,4 @@
-#include "network.h"
-#include <stdlib.h>
+#include "../include/network.h"
 
 // Report easy handle errors
 const char *easyError(CURLcode code) {

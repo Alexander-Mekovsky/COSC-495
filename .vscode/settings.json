@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "py_utils.h": "c",
+        "network.h": "c"
+    }
+}

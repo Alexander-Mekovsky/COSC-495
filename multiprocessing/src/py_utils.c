@@ -1,4 +1,4 @@
-#include "py_utils.h"
+#include "../include/py_utils.h"
 
 // Raise a Python error with the given message and type
 int pyerr(PyObject *type, char *message) {
