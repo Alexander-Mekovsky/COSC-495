@@ -7,7 +7,6 @@
 // Optional Uses
 #include <stdlib.h>
 #include <pthread.h>
-#include "threading.h"
 #include <libxml/parser.h>
 
 typedef struct {
@@ -34,10 +33,10 @@ const char *easyError(CURLcode code);
 const char *multiError(CURLMcode code);
 
 CURLcode curlInit();
-CURL *easyInit();
-MultiHandle *multiInit();
-CURLcode setEasyOptions(CURL *easy_handle, Option *options);
-CURLMcode setMultiOptions(MultiHandle *handle, Option *options);
+CURL *curlEasyInit();
+MultiHandle *curlMultiInit();
+CURLcode setEasyOptions(CURL *easy_handle, Option *options, int count = 1);
+CURLMcode setMultiOptions(MultiHandle *handle, Option *options, int count = 1);
 CURLcode setPrivateData(CURL *easy_handle, PrivateHandleData *data);
 CURLcode setEasyCallBack(CURL *easy_handle, void *callback, void *args);
 CURLMcode addMultiHandle(MultiHandle *handle, CURL easy_handle);

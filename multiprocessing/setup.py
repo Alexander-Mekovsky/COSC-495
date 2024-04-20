@@ -1,6 +1,6 @@
 from setuptools import setup, Extension
 
-module = Extension('caller',
+module = Extension('main',
                    sources=[
                        'src/main.c',
                        'src/network.c',
@@ -10,12 +10,15 @@ module = Extension('caller',
                        'src/py_utils.c'
                    ],
                    libraries=['curl', 'pthread', 'xml2'],
-                   include_dirs=['include']  # Pointing to the directory where the header files are stored
+                   include_dirs=['include'], 
+                   extra_compile_args=['-Wall']
                   )
 
 setup(
     name='MyApiCallPackage',
     version='1.0',
     description='Package to make concurrent API calls and write to files',
-    ext_modules=[module]
+    ext_modules=[module],
+    author='Joshua Brull',
+    author_email='jbrull1@gulls.salisbury.edu'
 )

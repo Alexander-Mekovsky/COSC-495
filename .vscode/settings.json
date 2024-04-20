@@ -2,6 +2,7 @@
     "files.associations": {
         "*.embeddedhtml": "html",
         "py_utils.h": "c",
-        "network.h": "c"
+        "network.h": "c",
+        "stdlib.h": "c"
     }
 }

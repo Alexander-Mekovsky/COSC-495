@@ -19,8 +19,8 @@ TaskQueue *queueInit();
 TaskQueue *queueFromArr(void *arr, int start, int end);
 int queueIsEmpty(TaskQueue *queue);
 void *queueDequeue(TaskQueue *queue);
-void queueEnqueue(TaskQueue *queue);
-int queueClear(TaskQueue *queue);
-int queueDestroy(TaskQueue *queue);
+void queueEnqueue(TaskQueue *queue, char *endpoint);
+void queueClear(TaskQueue *queue);
+void queueDestroy(TaskQueue *queue);
 
 #endif TASK_QUEUE_H
