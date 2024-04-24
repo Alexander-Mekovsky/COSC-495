@@ -175,8 +175,7 @@ static PyObject *get_response(PyObject *self, PyObject *args)
         }
     }
 
-    // multi handler here (loop)
-
+  
     // Wait for all calls to be finished or crash
     for (int i = 0; i < num_threads; i++)
     {
@@ -498,6 +497,8 @@ void *make_call(void *arg)
             WriteData wr = {args, handleData};
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, wr);
             curl_easy_setopt(curl, CURLPOT_WRITEFUNCTION, write_data);
+
+            CURLcode res = curl_easy_perform()
 
             if ((res = increment_calls_this_second(control, curl)) == CURLE_OK)
             {

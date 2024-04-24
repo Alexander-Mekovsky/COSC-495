@@ -237,7 +237,7 @@ def process_scopus_data(terms, key, increment=25, start=0):
         time.sleep(1)
         
         caller(terms,key,total,increment)
-        parser(terms,total)
+        #parser(terms,total)
     else:
         print(f"ERROR: Initial header request for search terms '{terms}' has been unsuccessful (RESPONSE_CODE: {response.status_code})")
         return 1

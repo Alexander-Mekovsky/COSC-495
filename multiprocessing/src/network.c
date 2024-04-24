@@ -29,6 +29,13 @@ MultiHandle *curlMultiInit() {
     return handle;
 }
 
+CURLMcode validateMultiHandle(MultiHandle *handle){
+    if (handle == NULL || handle->multi_handle == NULL) {
+        return CURLM_BAD_HANDLE;
+    }
+    return CURLM_OK;
+}
+
 // Set options for an easy handle
 CURLcode *setEasyOptions(CURL *easy_handle, Option *options, int count) {
     CURLcode res[count];
@@ -83,12 +90,29 @@ CURLcode getEasyInfo(CURL *easy_handle, Option *options) {
 }
 
 // Retrieve information about a multi handle
-CURLMcode getMultiInfo(MultiHandle *handle, Option *option) {
+CURLMcode getMultiInfo(MultiHandle *handle) {
     CURLMcode res;
+    if((res = validateMultiHandle(handle)) != CURLM_OK)
+        return res;
+
+    CURLMsg *msg;
+    int msgs_left = 0;
     pthread_mutex_lock(&handle->lock);
-    res = curl_easy_getinfo(handle->multi_handle, options->option, &options->parameter);
+    while((msg = curl_multi_info_read(handle->multi_handle, &msgs_left)) != NULL){
+        pthread_mutex_unlock(&handle->lock);
+
+        CURL *easy_handle = msg->easy_handle;
+        CURLcode return_code = msg->data.result;
+
+        //fprintf(stderr, "Transfer completed with result %d for handle %p\n", return_code, (void*)easy_handle);
+        
+        pthread_mutex_lock(&handle->lock);
+        curl_multi_remove_handle(handle->multi_handle, easy_handle);
+        curlEasyCleanup(easy_handle);
+    }
     pthread_mutex_unlock(&handle->lock);
-    return res;
+    
+    return CURLM_OK;
 }
 
 // Clean up libcurl resources
@@ -98,16 +122,73 @@ void curlCleanup() {
 
 // Clean up an easy handle
 void curlEasyCleanup(CURL *easy_handle) {
+    if (easy_handle == NULL) {
+        return; 
+    }
+
+    PrivateHandleData *privateData = NULL;
+
+    curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &privateData);
+
+    if (privateData != NULL) {
+        free(privateData->url);
+        if (privateData->context != NULL) {
+            xmlFreeParserCtxt(privateData->context); 
+            privateData->context = NULL;
+        }
+        free(privateData);
+        privateData = NULL;
+    }
+
     curl_easy_cleanup(easy_handle);
 }
 
 // Clean up a multi handle
 void curlMultiCleanup(MultiHandle *handle) {
+    CURLMcode res;
+    if((res = validateMultiHandle(handle)) != CURLM_OK)
+        return res;
     curl_multi_cleanup(handle->multi_handle);
     pthread_mutex_destroy(&handle->lock);
+    return res;
 }
 
 // Process multi handle actions
-CURLMcode processMultiHandle(MultiHandle *handle) {
-    // Function implementation
+CURLMcode processMultiHandle(MultiHandle *handle, int (*check_routine)(void *), void *routine_data) {
+    CURLMcode res;
+    if((res = validateMultiHandle(handle)) != CURLM_OK)
+        return res;
+
+    int still_running = 1; 
+    int check_result = 1;
+
+    pthread_mutex_lock(&handle->lock);
+    res = curl_multi_perform(handle->multi_handle, &still_running);
+    pthread_mutex_unlock(&handle->lock);
+
+    while (still_running || check_result) {
+        int numfds;
+        
+        res = curl_multi_wait(handle->multi_handle, NULL, 0, 1000, &numfds);
+        
+        if (res != CURLM_OK) {
+            return res; 
+        }
+        if (numfds == 0) {
+            usleep(100000);
+        }
+
+        pthread_mutex_lock(&handle->lock);
+        res = curl_multi_perform(handle->multi_handle, &still_running);
+        pthread_mutex_unlock(&handle->lock);
+
+        if (check_routine != NULL) 
+            check_result = check_routine(routine_data);
+        else 
+            check_result = 0;
+    }
+    }
+
+    res = getMultiInfo(handle);
+    return res;
 }

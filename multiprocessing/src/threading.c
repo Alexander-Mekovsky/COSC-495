@@ -8,7 +8,7 @@ ThreadControl *controlInit() {
         .rate = 0,
         .rate_lock = PTHREAD_MUTEX_INITIALIZER,
         .can_run = PTHREAD_COND_INITIALIZER,
-        .queued = 0
+        .queued = 0,
         .queued_lock = PTHREAD_MUTEX_INTIALIZER};
         return control;
 }
@@ -60,7 +60,7 @@ int decrementQueued(ThreadControl *control, int rate) {
 // Limit the rate of thread execution
 int limitRate(ThreadControl *control, int rate) {
     pthread_mutex_lock(&control->rate_lock);
-
+    
     while (control->rate >= rate)
     {
         incrementQueued(control);
@@ -94,6 +94,14 @@ void setTerminate(ThreadControl *control) {
     pthread_mutex_lock(&control->terminate_lock);
     control->terminate_flag = 1;
     pthread_mutex_unlock(&control->terminate_lock);
+}
+
+int isQueued(ThreadControl *control){
+    ThreadControl *threadControl = (ThreadControl *) control;
+    pthread_mutex_lock(&control->queued_lock);
+    int queued = control->queued;
+    pthread_mutex_unlock(&control->queued_lock);
+    return (if(queued > 0));
 }
 
 // Clean up the thread control structure

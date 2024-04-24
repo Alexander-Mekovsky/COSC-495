@@ -23,4 +23,4 @@ void queueEnqueue(TaskQueue *queue, char *endpoint);
 void queueClear(TaskQueue *queue);
 void queueDestroy(TaskQueue *queue);
 
-#endif TASK_QUEUE_H
+#endif //TASK_QUEUE_H
