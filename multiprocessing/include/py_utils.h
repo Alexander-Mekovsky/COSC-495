@@ -2,8 +2,9 @@
 #define PY_UTILS_H
 
 #include <Python.h>
+#include <string.h>
 
-int pyerr(PyObject *type, char *message);
+int pyerr(PyObject *type, const char *message);
 size_t objToList(PyObject *obj, PyObject *list);
 int pylistToStrings(PyObject *list, char **arr, size_t size); 
 

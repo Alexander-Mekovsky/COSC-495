@@ -21,7 +21,7 @@ CURL *curlEasyInit() {
 }
 
 // Initialize a multi handle
-MultiHandle *curlMultiInit() {
+MultiHandle curlMultiInit() {
     MultiHandle handle = {
         .multi_handle = curl_multi_init(),
         .lock = PTHREAD_MUTEX_INITIALIZER
@@ -34,38 +34,6 @@ CURLMcode validateMultiHandle(MultiHandle *handle){
         return CURLM_BAD_HANDLE;
     }
     return CURLM_OK;
-}
-
-// Set options for an easy handle
-CURLcode *setEasyOptions(CURL *easy_handle, Option *options, int count) {
-    CURLcode res[count];
-    for(int i = 0; i < count; ++i){
-        res[i] = curl_easy_setopt(easy_handle, options[i]->option, options[i]->parameter);
-    }
-    return res;
-}
-
-// Set options for a multi handle
-CURLMcode *setMultiOptions(MultiHandle *handle, Option *options, int count) {
-    CURLMcode res[count];
-    for(int i = 0; i < count; ++i){
-        res[i] = curl_multi_setopt(handle->multi_handle, options[i]->moption, options[i]->parameter);
-    }
-    return res;
-}
-
-// Attach private data to an easy handle
-CURLcode setPrivateData(CURL *easy_handle, PrivateHandleData *data) {
-    return curl_easy_setopt(easy_handle, CURLINFO_PRIVATE, data)
-}
-
-// Set callback functions for an easy handle
-CURLcode setEasyCallBack(CURL *easy_handle, void *callback, void *args) {
-    CURLcode res;
-    if ((res = curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, callback)) != 0)
-        return res;
-    res = curl_easy_setopt(easy_handle, CURLOPT_WRITEDATA, args);
-    return res;
 }
 
 // Add an easy handle to a multi handle
@@ -102,8 +70,8 @@ CURLMcode getMultiInfo(MultiHandle *handle) {
         pthread_mutex_unlock(&handle->lock);
 
         CURL *easy_handle = msg->easy_handle;
-        CURLcode return_code = msg->data.result;
-
+        CURLcode return_code = msg->data.result; // for log file
+        
         //fprintf(stderr, "Transfer completed with result %d for handle %p\n", return_code, (void*)easy_handle);
         
         pthread_mutex_lock(&handle->lock);
@@ -147,10 +115,9 @@ void curlEasyCleanup(CURL *easy_handle) {
 void curlMultiCleanup(MultiHandle *handle) {
     CURLMcode res;
     if((res = validateMultiHandle(handle)) != CURLM_OK)
-        return res;
+        return;
     curl_multi_cleanup(handle->multi_handle);
     pthread_mutex_destroy(&handle->lock);
-    return res;
 }
 
 // Process multi handle actions
@@ -177,16 +144,22 @@ CURLMcode processMultiHandle(MultiHandle *handle, int (*check_routine)(void *), 
         if (numfds == 0) {
             usleep(100000);
         }
-
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        int hours = (tv.tv_sec / 3600) % 24; // Convert seconds to hours
+        int minutes = (tv.tv_sec / 60) % 60; // Convert seconds to minutes
+        int seconds = tv.tv_sec % 60; // Seconds
+        int milliseconds = tv.tv_usec / 1000; // Convert microseconds to milliseconds
         pthread_mutex_lock(&handle->lock);
         res = curl_multi_perform(handle->multi_handle, &still_running);
         pthread_mutex_unlock(&handle->lock);
+        fprintf(stderr, "%02d:%02d:%02d:%03d - PERFORM\n",
+            hours, minutes, seconds, milliseconds);
 
         if (check_routine != NULL) 
             check_result = check_routine(routine_data);
         else 
             check_result = 0;
-    }
     }
 
     res = getMultiInfo(handle);

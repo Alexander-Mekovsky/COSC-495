@@ -4,8 +4,10 @@
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
+#include <libxml/xpathInternals.h>
+#include <string.h>
 
-typedef struct {
+typedef struct Namespace{
     const char *prefix;    // Prefix used for the namespace in XPath expressions
     const char *uri;       // URI that defines the namespace
 } Namespace;
@@ -16,17 +18,19 @@ typedef struct {
     char **xpaths;
     char **xmpaths;
     int count;
-    int **depthInfo;
+    int (*depthInfo)[4];
     int depthCount;
     Namespace *namespaces;
     int nsCount;
 } XPathFields;
 
+int checkXPathErrorCode(xmlNode *root, XPathFields *fields);
 int setScopusFieldXPaths(XPathFields *fields); //16
 char *safeFetchContent(xmlNode *root, const char *xpath_expr);
-char *processMultiField(xmlNode *root, int ival, XPathFields *fields);
+void processMultiField(xmlNode *root, int ival, XPathFields *fields, char *multi, size_t multiSize);
 int extractAndWriteToCsv(xmlNode *root, FILE *stream, XPathFields *fields);
-int parseChunkedXMLResponse(xmlParserCtxtPtr *context,const char *ptr, int size, FILE *stream);
-int cleanupXML(xmlParserCtxtPtr *context);
+int parseChunkedXMLResponse(xmlParserCtxtPtr context,const char *ptr, int size, FILE *stream, XPathFields *fields);
+void cleanupXPathFields(XPathFields *fields);
+int cleanupXML(xmlParserCtxtPtr context);
 
 #endif //XML_UTILS_H

@@ -6,7 +6,10 @@
 
 // Optional Uses
 #include <stdlib.h>
+#include <stdio.h>
+#include <sys/time.h>
 #include <pthread.h>
+#include <unistd.h>
 #include <libxml/parser.h>
 #include <sys/time.h>
 
@@ -18,7 +21,7 @@ typedef struct {
 
 typedef struct {
     CURLM *multi_handle;
-    pthread_mutex lock;
+    pthread_mutex_t lock;
 } MultiHandle;
 
 typedef struct {
@@ -36,12 +39,8 @@ const char *multiError(CURLMcode code);
 
 CURLcode curlInit();
 CURL *curlEasyInit();
-MultiHandle *curlMultiInit();
-CURLcode setEasyOptions(CURL *easy_handle, Option *options, int count);
-CURLMcode setMultiOptions(MultiHandle *handle, Option *options, int count);
-CURLcode setPrivateData(CURL *easy_handle, PrivateHandleData *data);
-CURLcode setEasyCallBack(CURL *easy_handle, void (*callback)(void *), void *args);
-CURLMcode addMultiHandle(MultiHandle *handle, CURL easy_handle);
+MultiHandle curlMultiInit();
+CURLMcode addMultiHandle(MultiHandle *handle, CURL *easy_handle);
 CURLcode getPrivateData(CURL *easy_handle, PrivateHandleData *data);
 CURLcode getEasyInfo(CURL *easy_handle, Option *option);
 CURLMcode getMultiInfo(MultiHandle *handle);

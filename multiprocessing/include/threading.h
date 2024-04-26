@@ -1,7 +1,10 @@
 #ifndef THREADING_H
-#def THREADING_H
+#define THREADING_H
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <sys/time.h>
+#include <string.h>
 #include <pthread.h>
 
 typedef struct {
@@ -15,15 +18,15 @@ typedef struct {
 } ThreadControl;
 
 ThreadControl *controlInit();
-int *createThreads(pthread_t *threads, pthread_attr_t *attr, void (*start_routine)(void *), void *args, int count);
-int *joinThreads(pthread_t *threads, int count);
+int createThreads(pthread_t *threads, pthread_attr_t *attr, void * (*start_routine)(void *), void *args, int count);
+int joinThreads(pthread_t *threads, int count);
 int incrementQueued(ThreadControl *control);
 int decrementQueued(ThreadControl *control, int rate);
 int limitRate(ThreadControl *control, int rate);
 void resetRate(ThreadControl *control, int rate);
 int isTerminate(ThreadControl *control);
 void setTerminate(ThreadControl *control);
-int isQueued(ThreadControl *control);
+int isQueued(void *control);
 void destroyControl(ThreadControl *control);
 
 #endif //THREADING_H

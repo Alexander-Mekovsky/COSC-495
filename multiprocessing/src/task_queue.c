@@ -1,19 +1,19 @@
 #include "../include/task_queue.h"
 
 // Initialize the task queue
-int queueInit(TaskQueue *queue) {
-    if(!(TaskQueue *tqueue = malloc(sizeof(TaskQueue))))
-        return 1;
+TaskQueue *queueInit() {
+    TaskQueue *tqueue = malloc(sizeof(TaskQueue));
+    if(!tqueue)
+        return NULL;
     tqueue->head = NULL;
     tqueue->tail = NULL;
-    pthread_mutex_t qlock = PTHREAD_MUTEX_INITIALIZER;
-    tqueue->lock = qlock;
-    return 0;
+    pthread_mutex_init(&tqueue->lock,NULL);
+    return tqueue;
 }
 
 // Check if the queue is empty
 int queueIsEmpty(TaskQueue *queue) {
-    if(queue->head != queue)
+    if(queue->head != NULL)
         return 0;
     return 1;
 }
@@ -22,26 +22,24 @@ int queueIsEmpty(TaskQueue *queue) {
 void *queueDequeue(TaskQueue *queue) {
     pthread_mutex_lock(&queue->lock);
 
-    if (queue->head == NULL)
-    {
+    if (queue->head == NULL) {
         pthread_mutex_unlock(&queue->lock);
-        return NULL; // Queue is empty, return NULL
+        return NULL; 
     }
 
     Task *temp = queue->head;
-    char *data = strdup(temp->endpoint); // Duplicate the string to return a valid pointer
-    queue->head = queue->head->next;
+    char *data = strdup(temp->endpoint); 
+    queue->head = temp->next;
 
     if (queue->head == NULL)
-    {
         queue->tail = NULL;
-    }
 
+    free(temp); 
     pthread_mutex_unlock(&queue->lock);
-    free(temp->endpoint);
-    free(temp);
-    return data;
+    return data; 
 }
+
+
 
 // Enqueue a task to the queue
 void queueEnqueue(TaskQueue *queue, char *endpoint) {
@@ -65,15 +63,15 @@ void queueEnqueue(TaskQueue *queue, char *endpoint) {
 }
 
 // Create a task queue from an array
-TaskQueue *queueFromArr(void *arr, int start, int end) {
+TaskQueue *queueFromArr(char **arr, int start, int end) {
     TaskQueue *queue;
-    if(queueInit(&queue) != 0)
+    if((queue = queueInit()) == NULL)
         return NULL;
     for(int i = start; i < end; ++i){
-        queueEnqueue(queue,arr[i]);
+        char *point = strdup(arr[i]);
+        queueEnqueue(queue,point);
     }
     return queue;
-    
 }
 
 // Clear all tasks from the queue
@@ -85,7 +83,8 @@ void queueClear(TaskQueue *queue) {
         Task *temp = queue->head;
         queue->head = queue->head->next;
 
-        free(temp->endpoint); // Free the dynamically allocated endpoint string
+        if(temp->endpoint != NULL)
+            free(temp->endpoint); // Free the dynamically allocated endpoint string
         free(temp);           // Free the task itself
     }
 
@@ -95,7 +94,9 @@ void queueClear(TaskQueue *queue) {
 
 // Destroy the queue and release resources
 void queueDestroy(TaskQueue *queue) {
-    if(queue->head != NULL)
-        queueClear(queue);
-    free(queue);
+    if (queue != NULL) {
+        if (queue->head != NULL)
+            queueClear(queue);
+        free(queue);
+    }
 }

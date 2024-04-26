@@ -1,161 +1,232 @@
 #include "../include/xml_utils.h"
 
-// Implementations of the functions declared in xml_utils.h
-int setScopusFieldXPaths(XPathFields *fields) {
-    if (fields == NULL){
-        return -1;
+int checkXPathErrorCode(xmlNode *root, XPathFields *fields){
+    if (fields == NULL) return -1;
+
+    char *statusCode = safeFetchContent(root, fields->error_code_xpath);
+    char *statusText = safeFetchContent(root, fields->error_text_xpath);
+
+    if ((statusCode && strcmp(statusCode, "") != 0) || (statusText && strcmp(statusText, "") != 0)) {
+        return atoi(statusCode);
     }
 
-    static Namespace namespaces[] = {
-        {"atom", "http://www.w3.org/2005/Atom"}
-    };
-    fields->namespaces = namespaces;
-    fields->nsCount = sizeof(namespaces) / sizeof(namespaces[0]);
-
-    fields->error_code_xpath = "//status/statusCode";
-    fields->error_text_xpath = "//status/statusText";
-    fields->count = 16;
-    fields->depthCount = 1;
-    fields->depthInfo = {{15, 0, 2, 3}}; // i val, namespace i, depth level, depth count
-
-    static char *paths[fields->count] = {
-        "//dc:identifier",
-        "//atom:source-id",
-        "//prism:issn",
-        "//prism:eIssn",
-        "//prism:isbn",
-        "//dc:title",
-        "//dc:creator",
-        "//prism:publicationName",
-        "//prism:coverDate",
-        "//atom:citedby-count",
-        "//prism:aggregationType",
-        "//atom:subtypeDescription",
-        "//prism:articleNumber",
-        "//prism:volume",
-        "//prism:doi",
-        "//prism:affiliation"
-    };
-    fields->xpaths = paths;
-    static char *mpaths[3] = {
-        "atom:affilname",
-        "atom:affiliation-city",
-        "atom:affiliation-country"
-    };
-    fields->xmpaths = mpaths;
-
+    if (statusCode) free(statusCode);
+    if (statusText) free(statusText);
     return 0;
 }
 
-char *safeFetchContent(xmlNode *root, const char *xpath_expr) {
-    if(root == NULL || xpath_expr == NULL) return NULL;
-    xmlXPathContextPtr context = xmlXPathNewContext(root->doc);
+// Implementations of the functions declared in xml_utils.h
+int setScopusFieldXPaths(XPathFields *fields) {
+    if (fields == NULL) {
+        return -1;
+    }
+
+    static struct Namespace namespaces[] = {
+        {"atom", "http://www.w3.org/2005/Atom"}
+    };
+    fields->namespaces = namespaces;
+    fields->nsCount = 1;
+
+    fields->error_code_xpath = "//status/statusCode";
+    fields->error_text_xpath = "//status/statusText";
+
+    fields->count = 16;
+    fields->depthCount = 1;
+
+    static int depthInfo[1][4] = {
+        {15, 0, 2, 3}  // i value, namespace i, depth level, depth count
+    };
+    fields->depthInfo = depthInfo;
     
-    if(context == NULL) return NULL;
+    static char *paths[16] = {
+        "//dc:identifier", "//atom:source-id", "//prism:issn", "//prism:eIssn",
+        "//prism:isbn", "//dc:title", "//dc:creator", "//prism:publicationName",
+        "//prism:coverDate", "//atom:citedby-count", "//prism:aggregationType",
+        "//atom:subtypeDescription", "//prism:articleNumber", "//prism:volume",
+        "//prism:doi", "//prism:affiliation"
+    };
+    fields->xpaths = paths;
+
+    static char *mpaths[3] = {
+        "atom:affilname", "atom:affiliation-city", "atom:affiliation-country"
+    };
+    fields->xmpaths = mpaths;
+
+    return 0; // Success
+}
+
+char *safeFetchContent(xmlNode *root, const char *xpath_expr) {
+    if (root == NULL || xpath_expr == NULL) return NULL;
+    
+    xmlXPathContextPtr context = xmlXPathNewContext(root->doc);
+    if (context == NULL) return NULL;
+    
     xmlXPathObjectPtr result = xmlXPathEvalExpression((xmlChar *)xpath_expr, context);
-    char *content = "";
+    char *content = NULL;  
 
     if (result != NULL && result->nodesetval != NULL && result->nodesetval->nodeNr > 0) {
-        content = (char *)xmlNodeGetContent(result->nodesetval->nodeTab[0]);
+        xmlChar *nodeContent = xmlNodeGetContent(result->nodesetval->nodeTab[0]);
+        if (nodeContent != NULL) {
+            content = strdup((char *)nodeContent);
+            xmlFree(nodeContent);  
+        }
     }
 
     xmlXPathFreeObject(result);
     xmlXPathFreeContext(context);
-    return content;
+    return content; 
 }
 
 
-char *processMultiField(xmlNode *root, int ival, XPathFields *fields) {
-    if (fields == NULL){
-        return -1;
-    }
-    xmlXPathContextPtr context = xmlXPathNewContext(root->doc);
+void processMultiField(xmlNode *root, int ival, XPathFields *fields, char *multi, size_t multiSize) {
+    if (fields == NULL || root == NULL || root->doc == NULL || multi == NULL) return; 
     
-    int ns = fields->depthInfo[i][1];
-    xmlXPathRegisterNs(context, (xmlChar *)fields->namespaces[ns][0], (xmlChar *)fields->namespaces[ns][1]);
-    xmlXPathObjectPtr result = xmlXPathEvalExpression((xmlChar *)fields->xpath[i], context);
+    xmlXPathContextPtr context = xmlXPathNewContext(root->doc);
+    if (context == NULL) return; 
+    
+    int ns = fields->depthInfo[ival][1];
+    xmlXPathRegisterNs(context, (xmlChar *)fields->namespaces[ns].prefix, (xmlChar *)fields->namespaces[ns].uri);
+    xmlXPathObjectPtr result = xmlXPathEvalExpression((xmlChar *)fields->xpaths[ival], context);
     
     int off = 0;
-    if (i != 0){
-        off = fields->depthInfo[i-1][3];
+    if (ival != 0) {
+        off = fields->depthInfo[ival-1][3];
     }
 
-    char multi[4096] = "";
-    if (result != NULL && result->nodesetval != NULL) {
+    multi[0] = '\0';
+
+    if (result != NULL && result->nodesetval != NULL && result->nodesetval->nodeNr > 0) {
+        size_t currentLength = 0;
         for (int j = 0; j < result->nodesetval->nodeNr; j++) {
             char multiParts[1024] = "";
-            
-            snprintf(multiParts, sizeof(multiParts), "%s-%s-%s",
-                    (char *)xmlNodeGetContent(xmlXPathEvalExpression((xmlChar *)fields->xmpath[0+off], context)->nodesetval->nodeTab[j]),
-                    (char *)xmlNodeGetContent(xmlXPathEvalExpression((xmlChar *)fields->xmpath[1+off], context)->nodesetval->nodeTab[j]),
-                    (char *)xmlNodeGetContent(xmlXPathEvalExpression((xmlChar *)fields->xmpath[2+off], context)->nodesetval->nodeTab[j]));
-            strcat(multi, multiParts);
-            
-            if (i < result->nodesetval->nodeNr - 1) {
-                strcat(multi, "|");
+
+            //needs change to dyn part length
+            int written = snprintf(multiParts, sizeof(multiParts), "%s-%s-%s",
+                (char *)xmlNodeGetContent(xmlXPathEvalExpression((xmlChar *)fields->xmpaths[0 + off], context)->nodesetval->nodeTab[j]),
+                (char *)xmlNodeGetContent(xmlXPathEvalExpression((xmlChar *)fields->xmpaths[1 + off], context)->nodesetval->nodeTab[j]),
+                (char *)xmlNodeGetContent(xmlXPathEvalExpression((xmlChar *)fields->xmpaths[2 + off], context)->nodesetval->nodeTab[j]));
+            if (written > 0 && (currentLength + written + 1) < multiSize) { 
+                if (currentLength > 0) {
+                    strncat(multi, "|", multiSize - currentLength - 1); 
+                    currentLength++;
+                }
+                strncat(multi, multiParts, multiSize - currentLength - 1);
+                currentLength += written;
             }
         }
     }
 
     xmlXPathFreeObject(result);
     xmlXPathFreeContext(context);
-    return multi;
 }
 
 
-int extractAndWriteToCsv(xmlNode *root, FILE *stream) {
-    XPathFields *fields;
-    if(setScopusFieldXPaths(&fields)< 0)
-        return -1;
+
+int extractAndWriteToCsv(xmlNode *root, FILE *stream, XPathFields *fields) {
+    if (root == NULL || stream == NULL || fields == NULL) {
+        return -1;  // Error code for invalid input
+    }
+
     int len = fields->count;
-    int off = len - fields->countMulti;
+    int off = len - fields->depthCount;
+    char multiFieldResult[4096];
+    char *content = NULL;
 
-    // if(safeFetchContent(root,fields->error_code_xpath) != "" || safeFetchContent(root, fields->error_text_xpath) != "")
-    //     return -2;
-
-    for(int i = 0; i < len; ++i){
-        fprintf(stream, "\"%s\"", safeFetchContent(root,fields->xpaths[i]));
-        if(i >= off)
-            fprintf(stream, "\"%s\"", processMultiField(root,i,fields);
+    for (int i = 0; i < len; ++i) {
+        if(i < off){
+            content = safeFetchContent(root, fields->xpaths[i]);
+            if (content != NULL) {
+                fprintf(stream, "\"%s\"", content);
+                free(content); 
+            } else {
+                fprintf(stream, "\"\"");
+            }
+        } else {
+            int j;
+            for (j = 0; j < fields->depthCount; ++j) {
+                if (fields->depthInfo[j][0] == i) {
+                    break;
+                }
+            }
+            processMultiField(root, j, fields, multiFieldResult, sizeof(multiFieldResult));
+            fprintf(stream, ",\"%s\"", multiFieldResult);
+        }
+        fprintf(stream, ",");
     }
 
     fprintf(stream, "\n");
-
     return 0;
 }
 
-int parseChunkedXMLResponse(xmlParserCtxtPtr *context, const char *ptr, int size, FILE *stream) {
-    if (context == NULL || *context == NULL || ptr == NULL) return -1;
+int parseChunkedXMLResponse(xmlParserCtxtPtr context, const char *ptr, int size, FILE *stream, XPathFields *fields) {
+    if (context == NULL || ptr == NULL) return -1;
 
-    size_t real_size = size * nmemb;
     int lastChunk = 0;
-    if (xmlParseChunk(context, ptr, real_size, lastChunk)) {
-        if (DEBUG == 1 )
-            fprintf(stderr, "Error while parsing XML chunk\n");
-        return -1;
+    if (xmlParseChunk(context, ptr, size, lastChunk)) {
+        return 0;
     }
 
-    int res;
+    int res = -1;
     if (lastChunk) {
         xmlNode *root_element = xmlDocGetRootElement(context->myDoc);
         if (root_element) {
-            res = extractAndWriteToCsv(root_element, stream);
+            res = extractAndWriteToCsv(root_element, stream, fields);
         }
-        close(stream);
         cleanupXML(context);
     }
     if (res < 0)
-        return res;
+        return 0;
 
     return lastChunk; 
 }
 
+void cleanupXPathFields(XPathFields *fields) {
+    if (fields == NULL) return;
 
-int cleanupXML(xmlParserCtxtPtr *context) {
-    if(context != NULL && *context != NULL) {
-        xmlFreeDoc((*context)->myDoc);
-        xmlFreeParserCtxt(*context);
-        *context = NULL;
+    // Free each string pointed to by the xpaths array
+    if (fields->xpaths) {
+        for (int i = 0; i < fields->count; i++) {
+            free(fields->xpaths[i]);
+        }
+        free(fields->xpaths);  // Free the array of pointers itself
+    }
+
+    if(fields->xmpaths){
+        for(int i = 0; i < fields->depthCount; ++i){
+            int num = fields->depthInfo[i][3];
+            for(int j = 0; j < num; ++j)
+                free(fields->xmpaths[num * (i+1)]);
+        }
+        free(fields->xmpaths);
+    }
+
+    if (fields->depthInfo)
+        free(fields->depthInfo);
+    
+    if (fields->namespaces) {
+        for (int i = 0; i < fields->nsCount; i++) {
+            free((char*)fields->namespaces[i].prefix);
+            free((char*)fields->namespaces[i].uri);
+        }
+        free(fields->namespaces);
+    }
+
+    fields->xpaths = NULL;
+    fields->xmpaths = NULL;
+    fields->depthInfo = NULL;
+    fields->namespaces = NULL;
+    fields->count = 0;
+    fields->depthCount = 0;
+    fields->nsCount = 0;
+    free(fields);
+    fields = NULL;
+}
+
+int cleanupXML(xmlParserCtxtPtr context) {
+    if(context != NULL) {
+        xmlFreeDoc(context->myDoc);
+        xmlFreeParserCtxt(context);
+        context = NULL;
     }
 
     return 0;
