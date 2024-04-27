@@ -19,7 +19,7 @@ typedef struct ThreadArguments
 {
     TaskQueue *queue;
     ThreadControl *control;
-    MultiHandle multi_handle;
+    MultiHandle *multi_handle;
     XPathFields *fields;
     FILE *stream;
 } ThreadArguments;
@@ -35,6 +35,7 @@ void *enforce_call_rate(void *args);
 size_t write_data(char *ptr, size_t size, size_t nmemb, void *userdata);
 void *make_call(void *args);
 
+// add null checking for functions and arrays
 static PyObject *get_response(PyObject *self, PyObject *args){
     int error = 0;
     PyObject *error_typ;
@@ -89,7 +90,7 @@ static PyObject *get_response(PyObject *self, PyObject *args){
     }
 
     ThreadControl *control = controlInit();
-    MultiHandle handle = curlMultiInit();
+    MultiHandle *handle = curlMultiInit();
     XPathFields *fields = (XPathFields *)malloc(sizeof(XPathFields));
     if (fields)
         memset(fields, 0, sizeof(XPathFields));
@@ -141,7 +142,7 @@ static PyObject *get_response(PyObject *self, PyObject *args){
 
     fclose(thread_args->stream);
     free(filename);
-    curlMultiCleanup(&thread_args->multi_handle);
+    curlMultiCleanup(thread_args->multi_handle);
     free(thread_args);
     cleanupXPathFields(fields);
     destroyControl(control);
@@ -174,7 +175,9 @@ PyMODINIT_FUNC PyInit_myapicall(void)
 
 void *enforce_call_rate(void *args)
 {
-    ThreadControl *control = (ThreadControl *)args;
+    ThreadArguments *targs = (ThreadArguments *)args;
+    ThreadControl *control = targs->control;
+    MultiHandle *handle = targs->handle;
 
     while (1)
     {
@@ -182,6 +185,7 @@ void *enforce_call_rate(void *args)
         if(isTerminate(control))
             return NULL;
 
+        //allowPerform(handle);
         resetRate(control, MAX_CALLS_PER_SECOND);
         decrementQueued(control, MAX_CALLS_PER_SECOND);
     }
@@ -189,6 +193,10 @@ void *enforce_call_rate(void *args)
 
 size_t write_data(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
+    if(ptr != NULL && ptr[0] == '{')
+    {
+        return -1;
+    }
     WriteData *wd = (WriteData *)userdata;
     ThreadArguments *fileControl = wd->targs;
     XPathFields *fields = fileControl->fields;
@@ -197,7 +205,7 @@ size_t write_data(char *ptr, size_t size, size_t nmemb, void *userdata)
 
     if (handleData == NULL || handleData->context == NULL) {
         fprintf(stderr, "Error: Null pointer encountered in critical data structures.\n");
-        return -1; 
+        return CURL_WRITEFUNC_ERROR; 
     }
 
     if(wd->firstChunk){

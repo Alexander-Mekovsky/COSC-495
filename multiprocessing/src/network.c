@@ -21,11 +21,15 @@ CURL *curlEasyInit() {
 }
 
 // Initialize a multi handle
-MultiHandle curlMultiInit() {
-    MultiHandle handle = {
-        .multi_handle = curl_multi_init(),
-        .lock = PTHREAD_MUTEX_INITIALIZER
-    };
+MultiHandle *curlMultiInit() {
+    MultiHandle *handle = (MultiHandle *) malloc(sizeof(MultiHandle));
+    if(!multi) return NULL;
+    
+    handle->multi_handle = curl_multi_init();
+    pthread_mutex_init(&handle->handle_lock, NULL);
+    // handle->can_perform = 1;
+    // pthread_mutex_init(&handle->control_lock,NULL);
+
     return handle;
 }
 
@@ -90,9 +94,8 @@ void curlCleanup() {
 
 // Clean up an easy handle
 void curlEasyCleanup(CURL *easy_handle) {
-    if (easy_handle == NULL) {
-        return; 
-    }
+    if (easy_handle == NULL) return; 
+    
 
     PrivateHandleData *privateData = NULL;
 
@@ -118,6 +121,7 @@ void curlMultiCleanup(MultiHandle *handle) {
         return;
     curl_multi_cleanup(handle->multi_handle);
     pthread_mutex_destroy(&handle->lock);
+    free(handle);
 }
 
 // Process multi handle actions
@@ -128,13 +132,22 @@ CURLMcode processMultiHandle(MultiHandle *handle, int (*check_routine)(void *), 
 
     int still_running = 1; 
     int check_result = 1;
-
+    
+    // Need to find a way to multi_perform within the 
     pthread_mutex_lock(&handle->lock);
     res = curl_multi_perform(handle->multi_handle, &still_running);
     pthread_mutex_unlock(&handle->lock);
 
     while (still_running || check_result) {
+        struct timeval stv;
+        gettimeofday(&tv, NULL);
+        int hours = (tv.tv_sec / 3600) % 24; // Convert seconds to hours
+        int minutes = (tv.tv_sec / 60) % 60; // Convert seconds to minutes
+        int seconds = tv.tv_sec % 60; // Seconds
+        int milliseconds = tv.tv_usec / 1000;
         int numfds;
+        fprintf(stderr, "%02d:%02d:%02d:%03d - LOOP_START\n",
+            hours, minutes, seconds, milliseconds);
         
         res = curl_multi_wait(handle->multi_handle, NULL, 0, 1000, &numfds);
         
@@ -144,22 +157,23 @@ CURLMcode processMultiHandle(MultiHandle *handle, int (*check_routine)(void *), 
         if (numfds == 0) {
             usleep(100000);
         }
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        int hours = (tv.tv_sec / 3600) % 24; // Convert seconds to hours
-        int minutes = (tv.tv_sec / 60) % 60; // Convert seconds to minutes
-        int seconds = tv.tv_sec % 60; // Seconds
-        int milliseconds = tv.tv_usec / 1000; // Convert microseconds to milliseconds
+         // Convert microseconds to milliseconds
         pthread_mutex_lock(&handle->lock);
         res = curl_multi_perform(handle->multi_handle, &still_running);
         pthread_mutex_unlock(&handle->lock);
-        fprintf(stderr, "%02d:%02d:%02d:%03d - PERFORM\n",
-            hours, minutes, seconds, milliseconds);
 
         if (check_routine != NULL) 
             check_result = check_routine(routine_data);
         else 
             check_result = 0;
+        
+        gettimeofday(&tv, NULL);
+        hours = (tv.tv_sec / 3600) % 24; // Convert seconds to hours
+        minutes = (tv.tv_sec / 60) % 60; // Convert seconds to minutes
+        seconds = tv.tv_sec % 60; // Seconds
+        milliseconds = tv.tv_usec / 1000;
+        fprintf(stderr, "%02d:%02d:%02d:%03d - LOOP_END\n",
+            hours, minutes, seconds, milliseconds);
     }
 
     res = getMultiInfo(handle);

@@ -3,10 +3,7 @@
 // Initialize the thread control structure
 ThreadControl *controlInit() {
     ThreadControl *control = malloc(sizeof(ThreadControl));
-    if(!control){
-
-        return NULL;
-    }
+    if(!control) return NULL;
 
     control->terminate_flag = 0;
     control->rate = 0;
