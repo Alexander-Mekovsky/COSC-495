@@ -28,12 +28,14 @@ void *queueDequeue(TaskQueue *queue) {
     }
 
     Task *temp = queue->head;
-    char *data = strdup(temp->endpoint); 
+    char *data = temp->endpoint; 
+    
     queue->head = temp->next;
 
     if (queue->head == NULL)
         queue->tail = NULL;
 
+    
     free(temp); 
     pthread_mutex_unlock(&queue->lock);
     return data; 
@@ -67,8 +69,11 @@ TaskQueue *queueFromArr(char **arr, int start, int end) {
     TaskQueue *queue;
     if((queue = queueInit()) == NULL)
         return NULL;
+
+    // char *point = malloc((end) * sizeof(char));
     for(int i = start; i < end; ++i){
-        char *point = strdup(arr[i]);
+        char *point = arr[i];
+    
         queueEnqueue(queue,point);
     }
     return queue;
@@ -94,9 +99,10 @@ void queueClear(TaskQueue *queue) {
 
 // Destroy the queue and release resources
 void queueDestroy(TaskQueue *queue) {
-    if (queue != NULL) {
-        if (queue->head != NULL)
-            queueClear(queue);
-        free(queue);
-    }
+    if (queue == NULL) return;
+
+    if (queue->head != NULL)
+        queueClear(queue);
+    free(queue);
+    queue = NULL;
 }

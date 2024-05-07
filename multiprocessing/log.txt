@@ -1,0 +1,368 @@
+==85402== Memcheck, a memory error detector
+==85402== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==85402== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==85402== Command: python3 main.py
+==85402== 
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+Res: No error
+D-Stroyin Q
+3455
+43.27478575706482  seconds
+
+Error making API calls: Done.
+None
+==85402== 
+==85402== HEAP SUMMARY:
+==85402==     in use at exit: 1,880,222 bytes in 1,332 blocks
+==85402==   total heap usage: 1,147,805 allocs, 1,146,473 frees, 104,286,661 bytes allocated
+==85402== 
+==85402== 520 bytes in 1 blocks are possibly lost in loss record 83 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x224587: _PyObject_GC_NewVar (in /usr/bin/python3.10)
+==85402==    by 0x24A2E6: ??? (in /usr/bin/python3.10)
+==85402==    by 0x270A20: ??? (in /usr/bin/python3.10)
+==85402==    by 0x257DA2: _PyObject_FastCallDictTstate (in /usr/bin/python3.10)
+==85402==    by 0x259D15: ??? (in /usr/bin/python3.10)
+==85402==    by 0x2A57F8: ??? (in /usr/bin/python3.10)
+==85402==    by 0x26210D: ??? (in /usr/bin/python3.10)
+==85402==    by 0x27142A: PyObject_Call (in /usr/bin/python3.10)
+==85402==    by 0x24D5D6: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x257C13: _PyObject_FastCallDictTstate (in /usr/bin/python3.10)
+==85402==    by 0x2A50DC: ??? (in /usr/bin/python3.10)
+==85402== 
+==85402== 520 bytes in 1 blocks are possibly lost in loss record 84 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x224587: _PyObject_GC_NewVar (in /usr/bin/python3.10)
+==85402==    by 0x24A2E6: ??? (in /usr/bin/python3.10)
+==85402==    by 0x257BE3: _PyObject_FastCallDictTstate (in /usr/bin/python3.10)
+==85402==    by 0x26CA63: ??? (in /usr/bin/python3.10)
+==85402==    by 0x258A1B: _PyObject_MakeTpCall (in /usr/bin/python3.10)
+==85402==    by 0x251095: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2479C5: ??? (in /usr/bin/python3.10)
+==85402==    by 0x33D255: PyEval_EvalCode (in /usr/bin/python3.10)
+==85402==    by 0x342E2C: ??? (in /usr/bin/python3.10)
+==85402==    by 0x262C58: ??? (in /usr/bin/python3.10)
+==85402==    by 0x24D5D6: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402== 
+==85402== 528 bytes in 1 blocks are possibly lost in loss record 88 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x224587: _PyObject_GC_NewVar (in /usr/bin/python3.10)
+==85402==    by 0x24A2E6: ??? (in /usr/bin/python3.10)
+==85402==    by 0x2629CD: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x261DC8: ??? (in /usr/bin/python3.10)
+==85402==    by 0x3427CE: _PyObject_CallMethodIdObjArgs (in /usr/bin/python3.10)
+==85402==    by 0x277078: PyImport_ImportModuleLevelObject (in /usr/bin/python3.10)
+==85402==    by 0x24DEA2: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2479C5: ??? (in /usr/bin/python3.10)
+==85402==    by 0x33D255: PyEval_EvalCode (in /usr/bin/python3.10)
+==85402==    by 0x342E2C: ??? (in /usr/bin/python3.10)
+==85402==    by 0x262C58: ??? (in /usr/bin/python3.10)
+==85402== 
+==85402== 528 bytes in 1 blocks are possibly lost in loss record 89 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x22396D: ??? (in /usr/bin/python3.10)
+==85402==    by 0x269772: PyObject_Realloc (in /usr/bin/python3.10)
+==85402==    by 0x344FCC: _PyObject_GC_Resize (in /usr/bin/python3.10)
+==85402==    by 0x24A3EF: ??? (in /usr/bin/python3.10)
+==85402==    by 0x2629CD: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24C53B: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x261DC8: ??? (in /usr/bin/python3.10)
+==85402==    by 0x3427CE: _PyObject_CallMethodIdObjArgs (in /usr/bin/python3.10)
+==85402==    by 0x277078: PyImport_ImportModuleLevelObject (in /usr/bin/python3.10)
+==85402==    by 0x24DEA2: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402== 
+==85402== 536 bytes in 1 blocks are possibly lost in loss record 90 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x224587: _PyObject_GC_NewVar (in /usr/bin/python3.10)
+==85402==    by 0x24A2E6: ??? (in /usr/bin/python3.10)
+==85402==    by 0x257BE3: _PyObject_FastCallDictTstate (in /usr/bin/python3.10)
+==85402==    by 0x2A50DC: ??? (in /usr/bin/python3.10)
+==85402==    by 0x2589C6: _PyObject_MakeTpCall (in /usr/bin/python3.10)
+==85402==    by 0x255E12: ??? (in /usr/bin/python3.10)
+==85402==    by 0x25599A: ??? (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2479C5: ??? (in /usr/bin/python3.10)
+==85402==    by 0x33D255: PyEval_EvalCode (in /usr/bin/python3.10)
+==85402==    by 0x342E2C: ??? (in /usr/bin/python3.10)
+==85402== 
+==85402== 536 bytes in 1 blocks are possibly lost in loss record 91 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x22396D: ??? (in /usr/bin/python3.10)
+==85402==    by 0x269772: PyObject_Realloc (in /usr/bin/python3.10)
+==85402==    by 0x344FCC: _PyObject_GC_Resize (in /usr/bin/python3.10)
+==85402==    by 0x24A3EF: ??? (in /usr/bin/python3.10)
+==85402==    by 0x257BE3: _PyObject_FastCallDictTstate (in /usr/bin/python3.10)
+==85402==    by 0x2A50DC: ??? (in /usr/bin/python3.10)
+==85402==    by 0x2589C6: _PyObject_MakeTpCall (in /usr/bin/python3.10)
+==85402==    by 0x255E12: ??? (in /usr/bin/python3.10)
+==85402==    by 0x25599A: ??? (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2479C5: ??? (in /usr/bin/python3.10)
+==85402== 
+==85402== 568 bytes in 1 blocks are possibly lost in loss record 96 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x224587: _PyObject_GC_NewVar (in /usr/bin/python3.10)
+==85402==    by 0x24A2E6: ??? (in /usr/bin/python3.10)
+==85402==    by 0x2629CD: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B45B: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B45B: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402== 
+==85402== 624 bytes in 1 blocks are possibly lost in loss record 176 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x224587: _PyObject_GC_NewVar (in /usr/bin/python3.10)
+==85402==    by 0x24A2E6: ??? (in /usr/bin/python3.10)
+==85402==    by 0x2707BF: ??? (in /usr/bin/python3.10)
+==85402==    by 0x24C53B: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x257CBC: _PyObject_FastCallDictTstate (in /usr/bin/python3.10)
+==85402==    by 0x26D86B: _PyObject_Call_Prepend (in /usr/bin/python3.10)
+==85402==    by 0x3886FF: ??? (in /usr/bin/python3.10)
+==85402==    by 0x258A7A: _PyObject_MakeTpCall (in /usr/bin/python3.10)
+==85402==    by 0x25214F: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2707F0: ??? (in /usr/bin/python3.10)
+==85402== 
+==85402== 664 bytes in 1 blocks are possibly lost in loss record 179 of 392
+==85402==    at 0x484DCD3: realloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x344FCC: _PyObject_GC_Resize (in /usr/bin/python3.10)
+==85402==    by 0x24A3EF: ??? (in /usr/bin/python3.10)
+==85402==    by 0x2629CD: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x250CF9: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402== 
+==85402== 704 bytes in 1 blocks are possibly lost in loss record 181 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x224587: _PyObject_GC_NewVar (in /usr/bin/python3.10)
+==85402==    by 0x24A2E6: ??? (in /usr/bin/python3.10)
+==85402==    by 0x257BE3: _PyObject_FastCallDictTstate (in /usr/bin/python3.10)
+==85402==    by 0x2A50DC: ??? (in /usr/bin/python3.10)
+==85402==    by 0x2589C6: _PyObject_MakeTpCall (in /usr/bin/python3.10)
+==85402==    by 0x255E12: ??? (in /usr/bin/python3.10)
+==85402==    by 0x25599A: ??? (in /usr/bin/python3.10)
+==85402==    by 0x24C53B: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2479C5: ??? (in /usr/bin/python3.10)
+==85402==    by 0x33D255: PyEval_EvalCode (in /usr/bin/python3.10)
+==85402==    by 0x342E2C: ??? (in /usr/bin/python3.10)
+==85402== 
+==85402== 1,496 bytes in 2 blocks are possibly lost in loss record 290 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x224587: _PyObject_GC_NewVar (in /usr/bin/python3.10)
+==85402==    by 0x24A2E6: ??? (in /usr/bin/python3.10)
+==85402==    by 0x2629CD: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402== 
+==85402== 1,936 bytes in 2 blocks are possibly lost in loss record 302 of 392
+==85402==    at 0x484DCD3: realloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x344FCC: _PyObject_GC_Resize (in /usr/bin/python3.10)
+==85402==    by 0x2343B1: _PyTuple_Resize (in /usr/bin/python3.10)
+==85402==    by 0x2815A0: ??? (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x257C13: _PyObject_FastCallDictTstate (in /usr/bin/python3.10)
+==85402==    by 0x26CA63: ??? (in /usr/bin/python3.10)
+==85402==    by 0x258A1B: _PyObject_MakeTpCall (in /usr/bin/python3.10)
+==85402==    by 0x251095: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x399733: ??? (in /usr/bin/python3.10)
+==85402==    by 0x27142A: PyObject_Call (in /usr/bin/python3.10)
+==85402== 
+==85402== 41,176 bytes in 20 blocks are possibly lost in loss record 383 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x242A17: ??? (in /usr/bin/python3.10)
+==85402==    by 0x240B64: ??? (in /usr/bin/python3.10)
+==85402==    by 0x2413E8: ??? (in /usr/bin/python3.10)
+==85402==    by 0x240FCB: ??? (in /usr/bin/python3.10)
+==85402==    by 0x24151E: ??? (in /usr/bin/python3.10)
+==85402==    by 0x240FCB: ??? (in /usr/bin/python3.10)
+==85402==    by 0x33C87F: ??? (in /usr/bin/python3.10)
+==85402==    by 0x34C894: ??? (in /usr/bin/python3.10)
+==85402==    by 0x261B33: ??? (in /usr/bin/python3.10)
+==85402==    by 0x250CF9: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402== 
+==85402== 47,771 (12,232 direct, 35,539 indirect) bytes in 139 blocks are definitely lost in loss record 384 of 392
+==85402==    at 0x484DA83: calloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x1204699E: make_call (main.c:319)
+==85402==    by 0x4A36AC2: start_thread (pthread_create.c:442)
+==85402==    by 0x4AC7A03: clone (clone.S:100)
+==85402== 
+==85402== 138,617 bytes in 76 blocks are possibly lost in loss record 390 of 392
+==85402==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==85402==    by 0x28A7C3: PyUnicode_Substring (in /usr/bin/python3.10)
+==85402==    by 0x271E28: ??? (in /usr/bin/python3.10)
+==85402==    by 0x24B45B: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402==    by 0x24B26C: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2479C5: ??? (in /usr/bin/python3.10)
+==85402==    by 0x33D255: PyEval_EvalCode (in /usr/bin/python3.10)
+==85402==    by 0x342E2C: ??? (in /usr/bin/python3.10)
+==85402==    by 0x262C58: ??? (in /usr/bin/python3.10)
+==85402==    by 0x24D5D6: _PyEval_EvalFrameDefault (in /usr/bin/python3.10)
+==85402==    by 0x2629FB: _PyFunction_Vectorcall (in /usr/bin/python3.10)
+==85402== 
+==85402== LEAK SUMMARY:
+==85402==    definitely lost: 12,232 bytes in 139 blocks
+==85402==    indirectly lost: 35,539 bytes in 139 blocks
+==85402==      possibly lost: 188,953 bytes in 110 blocks
+==85402==    still reachable: 1,643,498 bytes in 944 blocks
+==85402==         suppressed: 0 bytes in 0 blocks
+==85402== Reachable blocks (those to which a pointer was found) are not shown.
+==85402== To see them, rerun with: --leak-check=full --show-leak-kinds=all
+==85402== 
+==85402== For lists of detected and suppressed errors, rerun with: -s
+==85402== ERROR SUMMARY: 15 errors from 15 contexts (suppressed: 0 from 0)

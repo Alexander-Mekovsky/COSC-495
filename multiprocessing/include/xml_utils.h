@@ -24,6 +24,12 @@ typedef struct {
     int nsCount;
 } XPathFields;
 
+typedef struct {
+    char *filename;
+    FILE *outfile; 
+    XPathFields *parse_args;
+} ParseArguments;
+
 int checkXPathErrorCode(xmlNode *root, XPathFields *fields);
 int setScopusFieldXPaths(XPathFields *fields); //16
 char *safeFetchContent(xmlNode *root, const char *xpath_expr);
@@ -32,5 +38,6 @@ int extractAndWriteToCsv(xmlNode *root, FILE *stream, XPathFields *fields);
 int parseChunkedXMLResponse(xmlParserCtxtPtr context,const char *ptr, int size, FILE *stream, XPathFields *fields);
 void cleanupXPathFields(XPathFields *fields);
 int cleanupXML(xmlParserCtxtPtr context);
+int parseXMLFile(void *args);
 
 #endif //XML_UTILS_H

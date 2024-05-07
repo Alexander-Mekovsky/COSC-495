@@ -30,15 +30,29 @@ int pylistToStrings(PyObject *list, char **arr, size_t size) {
     }
     
     size_t len = PyList_Size(list);
-    for (size_t i = 0; i < len; ++i)
-    {
+    if (len > size) {
+        pyerr(PyExc_ValueError, "The size of the input list exceeds the size of the output array.");
+        return 1;
+    }
+
+    for (size_t i = 0; i < len; ++i) {
         PyObject *temp = PyList_GetItem(list, i);
-        if (!PyUnicode_Check(temp))
-        {
-            pyerr(PyExc_TypeError, "list items must be strings.");
+        if (!PyUnicode_Check(temp)) {
+            pyerr(PyExc_TypeError, "All list items must be strings.");
             return 1;
         }
-        arr[i] = strdup(PyUnicode_AsUTF8(temp));
+        
+        const char *str = PyUnicode_AsUTF8(temp);
+        if (!str) {
+            pyerr(PyExc_RuntimeError, "Unicode conversion failed.");
+            return 1;
+        }
+        
+        arr[i] = strdup(str);  // Allocate memory and copy string
+        if (!arr[i]) {  // Check for strdup failure
+            pyerr(PyExc_MemoryError, "Memory allocation failed for string duplication.");
+            return 1;
+        }
     }
     return 0;
 }

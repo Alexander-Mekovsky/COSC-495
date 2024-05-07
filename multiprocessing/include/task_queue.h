@@ -2,6 +2,7 @@
 #define TASK_QUEUE_H
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <pthread.h>
 

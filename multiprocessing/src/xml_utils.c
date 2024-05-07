@@ -180,44 +180,27 @@ int parseChunkedXMLResponse(xmlParserCtxtPtr context, const char *ptr, int size,
     return lastChunk; 
 }
 
+int parseXMLFile(void *args) {
+    // ParseArguments *pargs = (ParseArguments *)args;
+
+    // xmlDocPtr doc = xmlReadFile(pargs->filename, NULL, 0);
+    // if (!doc) return -1;  // Error loading file
+
+    // xmlNode *root_element = xmlDocGetRootElement(doc);
+    // if (!root_element) {
+    //     xmlFreeDoc(doc);
+    //     return -1;
+    // }
+
+    // int res = extractAndWriteToCsv(root_element, pargs->outfile, pargs->parse_args);
+    // xmlFreeDoc(doc);
+    // free(pargs);
+    // return res;
+    return 1;
+}
+
 void cleanupXPathFields(XPathFields *fields) {
     if (fields == NULL) return;
-
-    // Free each string pointed to by the xpaths array
-    if (fields->xpaths) {
-        for (int i = 0; i < fields->count; i++) {
-            free(fields->xpaths[i]);
-        }
-        free(fields->xpaths);  // Free the array of pointers itself
-    }
-
-    if(fields->xmpaths){
-        for(int i = 0; i < fields->depthCount; ++i){
-            int num = fields->depthInfo[i][3];
-            for(int j = 0; j < num; ++j)
-                free(fields->xmpaths[num * (i+1)]);
-        }
-        free(fields->xmpaths);
-    }
-
-    if (fields->depthInfo)
-        free(fields->depthInfo);
-    
-    if (fields->namespaces) {
-        for (int i = 0; i < fields->nsCount; i++) {
-            free((char*)fields->namespaces[i].prefix);
-            free((char*)fields->namespaces[i].uri);
-        }
-        free(fields->namespaces);
-    }
-
-    fields->xpaths = NULL;
-    fields->xmpaths = NULL;
-    fields->depthInfo = NULL;
-    fields->namespaces = NULL;
-    fields->count = 0;
-    fields->depthCount = 0;
-    fields->nsCount = 0;
     free(fields);
     fields = NULL;
 }

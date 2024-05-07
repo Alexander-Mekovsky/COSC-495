@@ -24,9 +24,9 @@ int incrementQueued(ThreadControl *control);
 int decrementQueued(ThreadControl *control, int rate);
 int limitRate(ThreadControl *control, int rate);
 void resetRate(ThreadControl *control, int rate);
-int isTerminate(ThreadControl *control);
+int isTerminate(void *args);
 void setTerminate(ThreadControl *control);
-int isQueued(void *control);
-void destroyControl(ThreadControl *control);
+int isQueued(void *args);
+void cleanupControl(ThreadControl *control);
 
 #endif //THREADING_H

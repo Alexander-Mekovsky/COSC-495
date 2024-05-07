@@ -4,8 +4,8 @@ MyApiCallPackage.egg-info/PKG-INFO
 MyApiCallPackage.egg-info/SOURCES.txt
 MyApiCallPackage.egg-info/dependency_links.txt
 MyApiCallPackage.egg-info/top_level.txt
+src/curl_utils.c
 src/main.c
-src/network.c
 src/py_utils.c
 src/task_queue.c
 src/threading.c

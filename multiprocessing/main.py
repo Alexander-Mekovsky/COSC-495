@@ -161,7 +161,7 @@ def process_scopus_data(terms, key, increment=25, start=0):
 def main():
     # 5335658c3e71c91bed47e6a055f22a6
     scopus_key = "3e98ccbfff5ed19b801086b00dfc5e36"
-    search_terms = "climate change global warming ocean atmosphere moon star" 
+    search_terms = "climate change global warming ocean atmosphere moon" 
     # ocean atmosphere moon star
     res = process_scopus_data(search_terms, scopus_key)
     print(res)

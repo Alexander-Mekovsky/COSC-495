@@ -3,7 +3,10 @@
 // Initialize the thread control structure
 ThreadControl *controlInit() {
     ThreadControl *control = malloc(sizeof(ThreadControl));
-    if(!control) return NULL;
+    if(!control){
+        return NULL;
+    }
+        
 
     control->terminate_flag = 0;
     control->rate = 0;
@@ -76,16 +79,7 @@ int limitRate(ThreadControl *control, int rate) {
     }
     control->rate++;
     pthread_mutex_unlock(&control->rate_lock);
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    int hours = (tv.tv_sec / 3600) % 24; // Convert seconds to hours
-    int minutes = (tv.tv_sec / 60) % 60; // Convert seconds to minutes
-    int seconds = tv.tv_sec % 60; // Seconds
-    int milliseconds = tv.tv_usec / 1000; // Convert microseconds to milliseconds
-
-    // Log the current time and rate
-    fprintf(stderr, "%02d:%02d:%02d:%03d - Calls this second is - %d\n",
-            hours, minutes, seconds, milliseconds, control->rate);
+    
     return 0;
 }
 
@@ -100,7 +94,13 @@ void resetRate(ThreadControl *control, int rate) {
 }
 
 // Check if terminate flag is set
-int isTerminate(ThreadControl *control) {
+int isTerminate(void *args) {
+    ThreadControl *control = (ThreadControl *)args;
+    if (!control){
+        fprintf(stderr, "Failure to check terminate flag as ThreadControl is NULL(free'd,deallocate'd,destroy'd)\n");
+        return 1;
+    }
+
     int res;
     pthread_mutex_lock(&control->terminate_lock);
     res = control->terminate_flag;
@@ -116,10 +116,12 @@ void setTerminate(ThreadControl *control) {
 }
 
 // Clean up the thread control structure
-void destroyControl(ThreadControl *control) {
+void cleanupControl(ThreadControl *control) {
+    if(control == NULL) return;
     pthread_mutex_destroy(&control->terminate_lock);
     pthread_mutex_destroy(&control->rate_lock);
     pthread_cond_destroy(&control->can_run);
     pthread_mutex_destroy(&control->queued_lock);
     free(control);
+    control = NULL;
 }

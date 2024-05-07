@@ -4,29 +4,33 @@
 #include <math.h>
 #include <string.h>
 #include <fcntl.h>
-#include "../include/network.h"
+#include "../include/xml_utils.h"
+#include "../include/curl_utils.h"
 #include "../include/py_utils.h"
 #include "../include/task_queue.h"
 #include "../include/threading.h"
-#include "../include/xml_utils.h"
 
-#define MAX_CALLS_PER_SECOND 9
+
+#define MAX_CALLS_PER_SECOND 7
 #define AVG_CALL_DELAY 4 // 3.50818417867
 #define DEBUG 1
 #define DEBUG_LVL 1
 
 typedef struct ThreadArguments
 {
-    TaskQueue *queue;
+    TaskQueue *queue; //test
     ThreadControl *control;
     MultiHandle *multi_handle;
     XPathFields *fields;
     FILE *stream;
+    FILE *log;
+    int log_out;
+    int responseCount;
+    pthread_mutex_t count_lock;
 } ThreadArguments;
 
 typedef struct WriteData
 {
-    ThreadArguments *targs;
     CURL *easy_handle;
     int firstChunk;
 } WriteData;
@@ -34,125 +38,205 @@ typedef struct WriteData
 void *enforce_call_rate(void *args);
 size_t write_data(char *ptr, size_t size, size_t nmemb, void *userdata);
 void *make_call(void *args);
+void *parse_call(void *args);
 
 // add null checking for functions and arrays
 static PyObject *get_response(PyObject *self, PyObject *args){
-    int error = 0;
-    PyObject *error_typ;
-    char *error_msg;
-
     PyObject *listObj;
     if (!PyArg_ParseTuple(args, "O!", &PyList_Type, &listObj)) {
-        pyerr(PyExc_TypeError, "Invalid arguments. Expected a list.");
-        return Py_BuildValue("s", "error");
+        pyerr(PyExc_TypeError,"Invalid arguments. Expected a list.");
+        return Py_BuildValue("s", "Error occurred.");
     }
 
     size_t len = PyList_Size(listObj);
-    if (len == 0){
-        pyerr(PyExc_RuntimeError, "Invalid arguments. Expected at least one URL.");
-        return Py_BuildValue("s", "error");
+    if (len <= 0){
+        pyerr(PyExc_RuntimeError,"Invalid arguments. Expected at least one.");
+        return Py_BuildValue("s", "Error occurred.");
     }
 
     char **arr = malloc(len * sizeof(char*));
     if (arr == NULL) {
-        pyerr(PyExc_MemoryError, "Memory allocation failed for URL array.");
-        return Py_BuildValue("s", "error");
+        pyerr(PyExc_MemoryError,"Memory allocation failed for URL array.");
+        return Py_BuildValue("s", "Error occurred.");
     }
+
+    PyObject *error_type = NULL;  // This will hold the Python exception type
+    const char *error_msg = NULL;  // This will hold the error message string
 
     if(pylistToStrings(listObj, arr, len) != 0){
-        free(arr);
-        pyerr(PyExc_RuntimeError, "Unable to create string array.");
-        return Py_BuildValue("s", "error");
+        error_type = PyExc_RuntimeError;
+        error_msg = "Failed to create an array of strings from list";
+        goto fail_arr;
     }
-    
-    TaskQueue *queue = queueFromArr(arr, 1, len);
-    char *filename = strdup(arr[0]);
-    for (size_t i = 0; i < len; ++i) {
-        free(arr[i]);
-    }
-    free(arr);
 
-    fprintf(stderr, "%s\n", filename);
-    FILE *stream = fopen(filename, "w+");
-    if (!stream) {
-        free(filename);
-        queueDestroy(queue);
-        pyerr(PyExc_IOError, "Failed to open file for writing.");
-        return Py_BuildValue("s", "error");
+    TaskQueue *queue = queueFromArr(arr, 1, len);
+    if(!queue){
+        error_type = PyExc_MemoryError;
+        error_msg = "Failed to create a queue from an array of strings";
+        goto fail_queue;
     }
-    fprintf(stream, "ID,Source ID,ISSN,EISSN,ISBN,Title,Creator,Publication Name,Cover Date,Cited By,Type,Subtype,Article Number,Volume,DOI,Affiliation\n");
 
     CURLcode res;
     if((res = curlInit()) != 0){
-        const char *msg = easyError(res);
-        pyerr(PyExc_RuntimeError, msg);
-        return Py_BuildValue("s", "error");
+        error_type = PyExc_RuntimeError;
+        error_msg = easyError(res);
+        goto fail_curl;
     }
 
     ThreadControl *control = controlInit();
-    MultiHandle *handle = curlMultiInit();
+    if(!control){
+        error_type = PyExc_IOError;
+        error_msg = "Memory allocation failed for ThreadControl.";
+        goto fail_control;
+    }
+
+    MultiHandle *handle = multiInit();
+    if(!handle){
+        error_type = PyExc_IOError;
+        error_msg = "Memory allocation failed for MultiHandle.";
+        goto fail_multi;
+    }
+
     XPathFields *fields = (XPathFields *)malloc(sizeof(XPathFields));
-    if (fields)
-        memset(fields, 0, sizeof(XPathFields));
+    if (!fields) {
+        error_type = PyExc_IOError;
+        error_msg = "Memory allocation failed for XPathFields.";
+        goto fail_fields;
+    }
+    memset(fields, 0, sizeof(XPathFields));
     if (setScopusFieldXPaths(fields) < 0){
-        destroyControl(control);
-        queueDestroy(queue);
-        curlCleanup();
-        pyerr(PyExc_RuntimeError, "failed to allocate XPathFields.");
-        return Py_BuildValue("s", "error");
+        error_type = PyExc_RuntimeError;
+        error_msg = "Failed to set XPath fields properly.";
+        goto fail_fields;
     }
 
     ThreadArguments *thread_args = malloc(sizeof(ThreadArguments));
-    if (!thread_args)
-    {   
-        cleanupXPathFields(fields);
-        destroyControl(control);
-        queueDestroy(queue);
-        curlCleanup();
-        pyerr(PyExc_RuntimeError, "failed to allocate ThreadArguments.");
-        return Py_BuildValue("s", "error");
+    if (!thread_args){
+        error_type = PyExc_IOError;
+        error_msg = "Memory allocation failed for ThreadArguments.";
+        goto fail_args;
     }
     thread_args->control = control;
     thread_args->queue = queue;
 
     thread_args->multi_handle = handle;
-    curl_multi_setopt(thread_args->multi_handle.multi_handle,CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX);
+    curl_multi_setopt(handle->multi_handle,CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX);
     
     thread_args->fields = fields;
+    thread_args->responseCount = 0;
+    pthread_mutex_init(&thread_args->count_lock, NULL);
 
+    char *filename = strdup(arr[0]);
+    FILE *stream = fopen(filename, "w+");
+    if (!stream) {
+        error_type = PyExc_IOError;
+        error_msg = "Failed to open file(stream) for writing";
+        goto fail_stream;
+    }
+
+    FILE *log = NULL;
+    thread_args->log_out = 0;
+    if(DEBUG){
+        time_t now = time(NULL);
+        struct tm *tm_now = localtime(&now);
+
+        char logname[256];  // Make sure the buffer is large enough
+        snprintf(logname, sizeof(logname), "log/[%d-%02d-%02d%%%02d:%02d]log.csv",
+                 tm_now->tm_year + 1900,  
+                 tm_now->tm_mon + 1,      
+                 tm_now->tm_mday,         
+                 tm_now->tm_hour,         
+                 tm_now->tm_min);
+        log = fopen(logname, "w+");
+        if(!log){
+            error_type = PyExc_IOError;
+            error_msg = "Failed to open file(log) for writing"; 
+            goto fail_log;
+        }
+        fprintf(log, "FILENAME, REQUEST TIME(sec), REQUEST TIME(sec)\n");
+        thread_args->log = log;
+        thread_args->log_out = 1;
+    }
+                
+    fprintf(stream, "ID,Source ID,ISSN,EISSN,ISBN,Title,Creator,Publication Name,Cover Date,Cited By,Type,Subtype,Article Number,Volume,DOI,Affiliation\n");
     thread_args->stream = stream;
 
-    pthread_t rate_limiter;
-    if(createThreads(&rate_limiter, NULL, enforce_call_rate, (void *)control, 1) == 0){
-        int num_threads = MAX_CALLS_PER_SECOND * floor(AVG_CALL_DELAY);
+    if(!error_msg){
+        pthread_t rate_limiter;
+        if(createThreads(&rate_limiter, NULL, enforce_call_rate, (void *)thread_args, 1) == 0){
+            int num_threads = MAX_CALLS_PER_SECOND * floor(AVG_CALL_DELAY);
         
-        pthread_t caller[num_threads];
-        if(createThreads(caller, NULL, make_call, (void *)thread_args, num_threads) == 0){
-            processMultiHandle(&thread_args->multi_handle, isQueued, control);
-        } else {
-            joinThreads(caller,num_threads);
-            error = 1;
-            error_typ = PyExc_RuntimeError;
-            error_msg = "failed to create one or more caller threads";
+            pthread_t caller[num_threads];
+            if(createThreads(caller, NULL, make_call, (void *)thread_args, num_threads) == 0){
+                
+                pthread_t parser;
+                if(createThreads(&parser, NULL, parse_call,(void *)thread_args,1) != 0){
+                    error_type = PyExc_RuntimeError;
+                    error_msg = "Failed to create parser_thread.";
+                    performMulti(handle, NULL, NULL);
+                    completeMultiTransfers(handle, NULL, 0, NULL, NULL, NULL, NULL, NULL);
+                } else {
+                    performMulti(handle,isQueued, (void *) control);
+                    joinThreads(&parser, 1);
+                }
+                
+                joinThreads(caller, num_threads);
+                completeMultiTransfers(thread_args->multi_handle,thread_args->log,thread_args->log_out,thread_args->stream,isTerminate,thread_args->control,parseXMLFile, thread_args->fields);
+            } else {
+                error_type = PyExc_RuntimeError;
+                error_msg = "Failed to create one or more caller threads";
+            }
+            
+            setTerminate(control);
+            joinThreads(&rate_limiter, 1);
         }
     }
 
-    setTerminate(control);
-    joinThreads(&rate_limiter, 1);
+fail_log:
+    if(log){
+        fclose(log);
+        log = NULL;
+    } 
 
-    fclose(thread_args->stream);
+fail_stream:
+    fclose(stream);
+    stream = NULL;
     free(filename);
-    curlMultiCleanup(thread_args->multi_handle);
+    filename = NULL;
+
+fail_args:
+    pthread_mutex_destroy(&thread_args->count_lock);
     free(thread_args);
+
+fail_fields:
     cleanupXPathFields(fields);
-    destroyControl(control);
+
+fail_multi:
+    cleanupMulti(handle);
+
+fail_control:
+    cleanupControl(control);
+
+fail_curl:
+    cleanupCurl();
+
+fail_queue:
+    fprintf(stderr, "D-Stroyin Q\n");
     queueDestroy(queue);
-    curlCleanup();
-    if(error){
-        pyerr(error_typ, error_msg);
-        return NULL;
+
+fail_arr:
+    for(size_t i = 0; i < len; ++i){
+        free(arr[i]);
     }
-    return Py_BuildValue("s", "done");
+    free(arr);
+    arr = NULL;
+    
+    if(error_msg){
+        pyerr(error_type, error_msg);
+        return Py_BuildValue("s", "Error occurred.");;
+    }
+ 
+    return Py_BuildValue("s", "Done.");
 }
 
 static PyMethodDef MyApiCallMethods[] = {
@@ -177,7 +261,7 @@ void *enforce_call_rate(void *args)
 {
     ThreadArguments *targs = (ThreadArguments *)args;
     ThreadControl *control = targs->control;
-    MultiHandle *handle = targs->handle;
+    MultiHandle *handle = targs->multi_handle;
 
     while (1)
     {
@@ -185,7 +269,7 @@ void *enforce_call_rate(void *args)
         if(isTerminate(control))
             return NULL;
 
-        //allowPerform(handle);
+        wakeupMulti(handle);
         resetRate(control, MAX_CALLS_PER_SECOND);
         decrementQueued(control, MAX_CALLS_PER_SECOND);
     }
@@ -193,39 +277,32 @@ void *enforce_call_rate(void *args)
 
 size_t write_data(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
-    if(ptr != NULL && ptr[0] == '{')
-    {
-        return -1;
+    CURL *handle = (CURL *)userdata;
+    if (handle == NULL) {
+        fprintf(stderr, "Error: Null pointer encountered in callback(CURL *).\n");
+        return 0; 
     }
-    WriteData *wd = (WriteData *)userdata;
-    ThreadArguments *fileControl = wd->targs;
-    XPathFields *fields = fileControl->fields;
-    PrivateHandleData *handleData;
-    curl_easy_getinfo(wd->easy_handle, CURLINFO_PRIVATE, &handleData);
+    PrivateHandleData *privateData = NULL;
 
-    if (handleData == NULL || handleData->context == NULL) {
-        fprintf(stderr, "Error: Null pointer encountered in critical data structures.\n");
-        return CURL_WRITEFUNC_ERROR; 
+    curl_easy_getinfo(handle, CURLINFO_PRIVATE, &privateData);
+    if(privateData == NULL){
+        fprintf(stderr, "Error: Null pointer encountered in callback(PrivateHandleData *).\n");
+        fprintf(stderr, "%s\n", ptr);
+        return size *nmemb;
     }
 
-    if(wd->firstChunk){
-        gettimeofday(&handleData->req_end, NULL);
-        gettimeofday(&handleData->parse_start, NULL);
-        wd->firstChunk = 0;
-
-        if(parseChunkedXMLResponse(handleData->context,(const char *)ptr,(size_t) size * nmemb, fileControl->stream, fields) < 0)
-            return -1;
-    }       
-
-    int lastChunk = 0;
-    if(!wd->firstChunk)
-        if((lastChunk = parseChunkedXMLResponse(handleData->context,(const char *)ptr,(size_t) size * nmemb, fileControl->stream,fields)) < 0)
-            return -1;
-
-    if(lastChunk) {
-        gettimeofday(&handleData->parse_end, NULL);
-        free(wd);
+    if(privateData->firstChunk){
+        privateData->firstChunk = 0;
+        gettimeofday(&privateData->req_end, NULL);
     }
+
+    if (privateData->stream == NULL) {
+        fprintf(stderr, "Error: Null pointer encountered in callback (FILE *).\n");
+        return 0;
+    }
+
+    fprintf(privateData->stream, "%s", ptr);
+    
     return size * nmemb;
 }
 
@@ -237,52 +314,75 @@ void *make_call(void *args)
 
     char *endpoint;
     while ((endpoint = (char *)queueDequeue(queue)) != NULL){
-        CURL *handle = curlEasyInit();
+        CURL *handle = easyInit();
         if(handle){
             PrivateHandleData *handleData =  (PrivateHandleData *)malloc(sizeof(PrivateHandleData));
             if(handleData){
-                handleData->context = xmlCreatePushParserCtxt(NULL, NULL, NULL, 0, NULL);
-                handleData->url = endpoint;
-                handleData->error_flag = 0;
-                
-                WriteData *wd = malloc(sizeof(WriteData));
-                if (!wd) {
-                    return NULL;
-                }
-                wd->targs = targs;
-                wd->easy_handle = handle;
-                wd->firstChunk = 1;
+                memset(handleData, 0, sizeof(PrivateHandleData));
+                FILE *fp;
+                char filename[FILENAME_MAX];
 
-                // Option options[] = {
-                //     {CURLOPT_URL, (char *) endpoint},
-                //     {CURLOPT_WRITEDATA, (void *) wd},
-                //     {CURLOPT_WRITEFUNCTION, (void *)write_data},
-                //     {CURLOPT_PRIVATE, (void *)handleData}
-                // };
-                // setEasyOptions(handle, options, 4);
+                pthread_mutex_lock(&targs->count_lock);
+                int responseNumber = targs->responseCount++;
+                pthread_mutex_unlock(&targs->count_lock);
+
+                sprintf(filename, "/tmp/response_%d.xml", responseNumber);
+                fp = fopen(filename, "wb");
+
+                if (fp == NULL)
+                {
+                    fprintf(stderr, "Error: Cannot read file: %s\n",filename);
+                    return (void*)101; // Return an error code if file opening fails
+                }
+                handleData->stream = fp;
+                handleData->firstChunk = 1;
+                handleData->url = endpoint;
 
                 curl_easy_setopt(handle, CURLOPT_URL,endpoint);
-                curl_easy_setopt(handle, CURLOPT_WRITEDATA, (void *)wd);
-                curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION,write_data);
                 curl_easy_setopt(handle, CURLOPT_PRIVATE, handleData);
+                PrivateHandleData *test; 
+                CURLcode rest = curl_easy_getinfo(handle, CURLINFO_PRIVATE, &test);
+                if(test == NULL){
+                    fprintf(stderr, "%s\n",easyError(rest));
+                }
 
-                
+
+                curl_easy_setopt(handle, CURLOPT_WRITEDATA, (void *)handle);
+                curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION,write_data);
 
                 if (DEBUG && DEBUG_LVL > 2){
                     curl_easy_setopt(handle, CURLOPT_VERBOSE, 1L);
                 }
 
                 limitRate(control, MAX_CALLS_PER_SECOND);
-                CURLMcode res = addMultiHandle(&targs->multi_handle, handle);
+                CURLMcode res = addMultiEasy(targs->multi_handle, handle);
                 gettimeofday(&handleData->req_start, NULL);
 
-                if(res != 0){
-                    pyerr(PyExc_RuntimeError, multiError(res));
+                if(res != CURLM_OK){
+                    fprintf(stderr, "%s\n",multiError(res));
                     queueEnqueue(queue, endpoint);
+                    cleanupEasy(handle);
                     continue;
                 }
             }
         }
     }
     return NULL;
+}
+
+void *parse_call(void *args){
+    ThreadArguments *targs = (ThreadArguments *) args;
+    int res = completeMultiTransfers(targs->multi_handle,targs->log,targs->log_out,targs->stream,isTerminate,targs->control,parseXMLFile, targs->fields);
+    switch (res)
+    {
+    case 1:
+        fprintf(stderr, "Error. Bad Multi Handle\n");
+        break;
+    case 2:
+        fprintf(stderr, "Error cleaning up an easy handle\n");
+        break;
+    default:
+        break;
+    }
+    return (void *)0;
 }
