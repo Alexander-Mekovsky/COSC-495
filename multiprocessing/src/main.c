@@ -141,7 +141,7 @@ static PyObject *get_response(PyObject *self, PyObject *args){
         struct tm *tm_now = localtime(&now);
 
         char logname[256];  // Make sure the buffer is large enough
-        snprintf(logname, sizeof(logname), "log/[%d-%02d-%02d%%%02d:%02d]log.csv",
+        snprintf(logname, sizeof(logname), "log/[%d-%02d-%02d:[%02d:%02d]]log.csv",
                  tm_now->tm_year + 1900,  
                  tm_now->tm_mon + 1,      
                  tm_now->tm_mday,         
