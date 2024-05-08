@@ -6,6 +6,7 @@
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
 #include <string.h>
+#include <stdio.h>
 
 typedef struct Namespace{
     const char *prefix;    // Prefix used for the namespace in XPath expressions
@@ -26,6 +27,7 @@ typedef struct {
 
 typedef struct {
     char *filename;
+    FILE *parsefile;
     FILE *outfile; 
     XPathFields *parse_args;
 } ParseArguments;
@@ -38,6 +40,8 @@ int extractAndWriteToCsv(xmlNode *root, FILE *stream, XPathFields *fields);
 int parseChunkedXMLResponse(xmlParserCtxtPtr context,const char *ptr, int size, FILE *stream, XPathFields *fields);
 void cleanupXPathFields(XPathFields *fields);
 int cleanupXML(xmlParserCtxtPtr context);
+int readCallback(void *context, char *buffer, int len);
+int closeCallback(void *context);
 int parseXMLFile(void *args);
 
 #endif //XML_UTILS_H

@@ -60,7 +60,6 @@ void queueEnqueue(TaskQueue *queue, char *endpoint) {
         queue->tail->next = task;
         queue->tail = task;
     }
-
     pthread_mutex_unlock(&queue->lock);
 }
 

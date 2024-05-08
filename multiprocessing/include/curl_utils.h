@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/time.h>
+#include <string.h>
 
 typedef struct {
     CURLM *multi_handle;
@@ -21,6 +22,7 @@ typedef struct {
 typedef struct {
     int firstChunk;
     char *url;
+    char *filename;
     FILE *stream;
     struct timeval req_start;
     struct timeval req_end;
@@ -29,7 +31,13 @@ typedef struct {
 } PrivateHandleData;
 
 typedef struct {
+    int res;
+    char *url;
+} TransfersStatus;
+
+typedef struct {
     char *filename;
+    FILE *parsefile;
     FILE *outfile; 
     void *parse_args;
 } ParseParameters;
@@ -50,7 +58,7 @@ CURLMcode addMultiEasy(MultiHandle *handle, CURL *easy_handle);
 CURLMcode rmvMultiEasy(MultiHandle *handle, CURL *easy_handle);
 CURLMcode wakeupMulti(MultiHandle *handle);
 CURLMcode performMulti(MultiHandle *handle, int (*check_routine)(void *), void *routine_data);
-CURLMcode completeMultiTransfers(MultiHandle *handle, FILE *log_file, int log_out, FILE *stream, int (*check_routine)(void *), void *check_data,int (*parse_write_routine)(void *), void *parse_data);
+TransfersStatus completeMultiTransfers(MultiHandle *handle, FILE *log_file, int log_out, FILE *stream,int (*parse_write_routine)(void *), void *parse_data);
 void cleanupMulti(MultiHandle *handle);
 
 #endif //NETWORK_H

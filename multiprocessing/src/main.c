@@ -173,15 +173,19 @@ static PyObject *get_response(PyObject *self, PyObject *args){
                 if(createThreads(&parser, NULL, parse_call,(void *)thread_args,1) != 0){
                     error_type = PyExc_RuntimeError;
                     error_msg = "Failed to create parser_thread.";
-                    performMulti(handle, NULL, NULL);
-                    completeMultiTransfers(handle, NULL, 0, NULL, NULL, NULL, NULL, NULL);
+                    performMulti(handle, isQueued, (void *) control);
+                    while(isQueued(thread_args->control)){
+                        completeMultiTransfers(handle, NULL, 0, NULL, NULL, NULL);
+                    }
                 } else {
                     performMulti(handle,isQueued, (void *) control);
                     joinThreads(&parser, 1);
                 }
+
+                completeMultiTransfers(thread_args->multi_handle,thread_args->log,thread_args->log_out,thread_args->stream,parseXMLFile, thread_args->fields);
                 
                 joinThreads(caller, num_threads);
-                completeMultiTransfers(thread_args->multi_handle,thread_args->log,thread_args->log_out,thread_args->stream,isTerminate,thread_args->control,parseXMLFile, thread_args->fields);
+    
             } else {
                 error_type = PyExc_RuntimeError;
                 error_msg = "Failed to create one or more caller threads";
@@ -221,7 +225,15 @@ fail_curl:
     cleanupCurl();
 
 fail_queue:
-    fprintf(stderr, "D-Stroyin Q\n");
+    if(!queueIsEmpty(queue)){
+        FILE *outq = fopen("endpointsNotRead.txt", "w+");
+        if(outq){
+            while(!queueIsEmpty(queue)){
+                fprintf(outq, "%s\n", (char *) queueDequeue(queue));
+            }
+            fclose(outq);
+        }
+    }
     queueDestroy(queue);
 
 fail_arr:
@@ -320,20 +332,24 @@ void *make_call(void *args)
             if(handleData){
                 memset(handleData, 0, sizeof(PrivateHandleData));
                 FILE *fp;
-                char filename[FILENAME_MAX];
 
                 pthread_mutex_lock(&targs->count_lock);
                 int responseNumber = targs->responseCount++;
                 pthread_mutex_unlock(&targs->count_lock);
 
-                sprintf(filename, "/tmp/response_%d.xml", responseNumber);
-                fp = fopen(filename, "wb");
+                char *filename = malloc(256); // Ensure this is large enough for your data
+                if (filename != NULL) {
+                    snprintf(filename, 256, "/tmp/response_%d.xml", responseNumber);
+                    fp = fopen(filename, "wb");
+                } 
+                
 
                 if (fp == NULL)
                 {
                     fprintf(stderr, "Error: Cannot read file: %s\n",filename);
                     return (void*)101; // Return an error code if file opening fails
                 }
+                handleData->filename = filename;
                 handleData->stream = fp;
                 handleData->firstChunk = 1;
                 handleData->url = endpoint;
@@ -372,17 +388,32 @@ void *make_call(void *args)
 
 void *parse_call(void *args){
     ThreadArguments *targs = (ThreadArguments *) args;
-    int res = completeMultiTransfers(targs->multi_handle,targs->log,targs->log_out,targs->stream,isTerminate,targs->control,parseXMLFile, targs->fields);
-    switch (res)
-    {
-    case 1:
-        fprintf(stderr, "Error. Bad Multi Handle\n");
-        break;
-    case 2:
-        fprintf(stderr, "Error cleaning up an easy handle\n");
-        break;
-    default:
-        break;
+    int counts[5];
+    for(int i = 0; i < 5; i++) counts[i] = 0;
+    while(isQueued(targs->control)){
+        TransfersStatus stat = completeMultiTransfers(targs->multi_handle,targs->log,targs->log_out,targs->stream,parseXMLFile, targs->fields);
+        switch (stat.res)
+        {
+        case 0:
+            break;
+        case 1:
+            fprintf(stderr, "Error: Bad Multi Handle\n");
+            counts[1]++;
+            break;
+        case 2:
+            fprintf(stderr, "Error: Bad Private Data\n");
+            counts[2]++;
+            break;
+        case 3: 
+            fprintf(stderr, "Error: Failed to cleanup easy handle\n");
+            counts[3]++;
+            break;
+        default:
+            fprintf(stderr, "Status error code: %d. Queueing failed endpoint\n", stat.res);
+            queueEnqueue(targs->queue, stat.url);
+            counts[4]++;
+            break;
+        }
     }
-    return (void *)0;
+    return (void *) 0;
 }

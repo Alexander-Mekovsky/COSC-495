@@ -180,23 +180,47 @@ int parseChunkedXMLResponse(xmlParserCtxtPtr context, const char *ptr, int size,
     return lastChunk; 
 }
 
+int readCallback(void *context, char *buffer, int len) {
+    return fread(buffer, 1, len, (FILE *)context);
+}
+
+int closeCallback(void *context) {
+    FILE *file = (FILE *)context;
+    int res = fclose(file);
+    file = NULL;
+    return res;  // No operation if you don't want to close the file here
+}
+
 int parseXMLFile(void *args) {
-    // ParseArguments *pargs = (ParseArguments *)args;
+    ParseArguments *pargs = (ParseArguments *)args;
 
-    // xmlDocPtr doc = xmlReadFile(pargs->filename, NULL, 0);
-    // if (!doc) return -1;  // Error loading file
+    // Set up the input source for reading from FILE*
+    xmlParserInputBufferPtr inputBuffer = xmlParserInputBufferCreateIO(readCallback, closeCallback, pargs->parsefile, XML_CHAR_ENCODING_NONE);
 
-    // xmlNode *root_element = xmlDocGetRootElement(doc);
-    // if (!root_element) {
-    //     xmlFreeDoc(doc);
-    //     return -1;
-    // }
+    if (!inputBuffer) return 5;
 
-    // int res = extractAndWriteToCsv(root_element, pargs->outfile, pargs->parse_args);
-    // xmlFreeDoc(doc);
-    // free(pargs);
-    // return res;
-    return 1;
+
+    xmlDocPtr doc = xmlReadIO(inputBuffer->readcallback, inputBuffer->closecallback, inputBuffer->context, NULL, NULL, 0);
+    if (!doc) {
+        xmlFreeParserInputBuffer(inputBuffer);
+        return 6;
+    }
+
+    xmlNode *root_element = xmlDocGetRootElement(doc);
+    if (!root_element) {
+        xmlFreeDoc(doc);
+        xmlFreeParserInputBuffer(inputBuffer);
+        return 7;
+    }
+
+    int res = checkXPathErrorCode(root_element, pargs->parse_args);
+    if(res != 0)
+        return res;
+
+    res = extractAndWriteToCsv(root_element, pargs->outfile, pargs->parse_args);
+    xmlFreeDoc(doc);
+    xmlFreeParserInputBuffer(inputBuffer);
+    return res;
 }
 
 void cleanupXPathFields(XPathFields *fields) {
