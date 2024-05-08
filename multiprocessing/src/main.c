@@ -141,7 +141,7 @@ static PyObject *get_response(PyObject *self, PyObject *args){
         struct tm *tm_now = localtime(&now);
 
         char logname[256];  // Make sure the buffer is large enough
-        snprintf(logname, sizeof(logname), "log/[%d-%02d-%02d:[%02d:%02d]]log.csv",
+        snprintf(logname, sizeof(logname), "log/%d-%02d-%02d_%02d-%02dlog.csv",
                  tm_now->tm_year + 1900,  
                  tm_now->tm_mon + 1,      
                  tm_now->tm_mday,         
@@ -374,7 +374,7 @@ void *make_call(void *args)
                 time_t now = tv.tv_sec;
                 struct tm *tm_now = localtime(&now);
                 int milliseconds = tv.tv_usec / 1000;
-                fprintf(stderr,"%02d:%02d:%02d-%03d: Added Handle\n", tm_now->tm_hour, tm_now->tm_min, tm_now->tm_sec, milliseconds);
+                fprintf(stderr,"%02d:%02d:%02d-%03d: Request(%s) Added\n", tm_now->tm_hour, tm_now->tm_min, tm_now->tm_sec, milliseconds, filename);
                 
                 gettimeofday(&handleData->req_start, NULL);
 

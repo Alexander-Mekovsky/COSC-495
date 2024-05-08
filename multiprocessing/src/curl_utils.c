@@ -103,13 +103,13 @@ CURLMcode performMulti(MultiHandle *handle, int (*check_routine)(void *), void *
         time_t now = tv.tv_sec;
         struct tm *tm_now = localtime(&now);
         int milliseconds = tv.tv_usec / 1000;
-        // fprintf(stderr,"%02d:%02d:%02d-%03d: Performed\n", tm_now->tm_hour, tm_now->tm_min, tm_now->tm_sec, milliseconds);
+        fprintf(stderr,"%02d:%02d:%02d-%03d: Multi-Handle Performed\n", tm_now->tm_hour, tm_now->tm_min, tm_now->tm_sec, milliseconds);
 
         if(pres != CURLM_OK){
             return pres;
         }
 
-        int wres = curl_multi_poll(handle->multi_handle, NULL, 0, 1000, &numfds);
+        int wres = curl_multi_poll(handle->multi_handle, NULL, 0, 300000, &numfds);
         if(wres != CURLM_OK){
             return wres;
         }
@@ -145,6 +145,7 @@ TransfersStatus completeMultiTransfers(MultiHandle *handle, FILE *log_file, int 
         pthread_mutex_unlock(&handle->lock);
         CURL *easy_handle = msg->easy_handle;
         CURLcode return_code = msg->data.result; // for log file
+
         // fprintf(stderr, "Res: %s\n", easyError(return_code));
         //fprintf(stderr, "Transfer completed with result %d for handle %p\n", return_code, (void*)easy_handle);
         PrivateHandleData *pdata = NULL;
@@ -157,6 +158,13 @@ TransfersStatus completeMultiTransfers(MultiHandle *handle, FILE *log_file, int 
         }
         fclose(pdata->stream);
         pdata->stream = NULL;
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        time_t now = tv.tv_sec;
+        struct tm *tm_now = localtime(&now);
+        int milliseconds = tv.tv_usec / 1000;
+        fprintf(stderr,"%02d:%02d:%02d-%03d: Request(%s) Completed\n", tm_now->tm_hour, tm_now->tm_min, tm_now->tm_sec, milliseconds, pdata->filename);
+
 
         
         // if(parse_write_routine != NULL){
