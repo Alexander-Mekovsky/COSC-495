@@ -11,7 +11,7 @@
 #include "../include/threading.h"
 
 
-#define MAX_CALLS_PER_SECOND 7
+#define MAX_CALLS_PER_SECOND 8
 #define AVG_CALL_DELAY 4 // 3.50818417867
 #define DEBUG 1
 #define DEBUG_LVL 1
@@ -237,9 +237,9 @@ fail_queue:
     queueDestroy(queue);
 
 fail_arr:
-    for(size_t i = 0; i < len; ++i){
-        free(arr[i]);
-    }
+    // for(size_t i = 0; i < len; ++i){
+    //     if(arr[i]) free(arr[i]);
+    // }
     free(arr);
     arr = NULL;
     
@@ -280,9 +280,10 @@ void *enforce_call_rate(void *args)
         sleep(1);
         if(isTerminate(control))
             return NULL;
-
+        usleep(40000);
         wakeupMulti(handle);
         resetRate(control, MAX_CALLS_PER_SECOND);
+        wakeupMulti(handle);
         decrementQueued(control, MAX_CALLS_PER_SECOND);
     }
 }
@@ -356,12 +357,6 @@ void *make_call(void *args)
 
                 curl_easy_setopt(handle, CURLOPT_URL,endpoint);
                 curl_easy_setopt(handle, CURLOPT_PRIVATE, handleData);
-                PrivateHandleData *test; 
-                CURLcode rest = curl_easy_getinfo(handle, CURLINFO_PRIVATE, &test);
-                if(test == NULL){
-                    fprintf(stderr, "%s\n",easyError(rest));
-                }
-
 
                 curl_easy_setopt(handle, CURLOPT_WRITEDATA, (void *)handle);
                 curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION,write_data);
@@ -371,7 +366,16 @@ void *make_call(void *args)
                 }
 
                 limitRate(control, MAX_CALLS_PER_SECOND);
+
+                
                 CURLMcode res = addMultiEasy(targs->multi_handle, handle);
+                struct timeval tv;
+                gettimeofday(&tv, NULL);
+                time_t now = tv.tv_sec;
+                struct tm *tm_now = localtime(&now);
+                int milliseconds = tv.tv_usec / 1000;
+                fprintf(stderr,"%02d:%02d:%02d-%03d: Added Handle\n", tm_now->tm_hour, tm_now->tm_min, tm_now->tm_sec, milliseconds);
+                
                 gettimeofday(&handleData->req_start, NULL);
 
                 if(res != CURLM_OK){

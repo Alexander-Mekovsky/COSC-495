@@ -25,12 +25,14 @@ void cleanupEasy(CURL *easy_handle){
 
     if (privateData != NULL) {
         free(privateData->url);
+        privateData->url = NULL;
         if(privateData->stream) {
             fclose(privateData->stream);
             privateData->stream = NULL;
         }
         privateData->stream = NULL;
         free(privateData->filename);
+        privateData->filename = NULL;
         free(privateData);
         privateData = NULL;
     }
@@ -95,6 +97,13 @@ CURLMcode performMulti(MultiHandle *handle, int (*check_routine)(void *), void *
         pthread_mutex_lock(&handle->lock);
         int pres = curl_multi_perform(handle->multi_handle, &still_running);
         pthread_mutex_unlock(&handle->lock);
+        
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        time_t now = tv.tv_sec;
+        struct tm *tm_now = localtime(&now);
+        int milliseconds = tv.tv_usec / 1000;
+        // fprintf(stderr,"%02d:%02d:%02d-%03d: Performed\n", tm_now->tm_hour, tm_now->tm_min, tm_now->tm_sec, milliseconds);
 
         if(pres != CURLM_OK){
             return pres;
@@ -110,9 +119,9 @@ CURLMcode performMulti(MultiHandle *handle, int (*check_routine)(void *), void *
         else 
             check_result = numfds;
 
-        if (numfds == 0) {
-            usleep(100000);
-        }
+        // if (numfds == 0) {
+        //     usleep(100000);
+        // }
     } while (still_running || check_result);
     
     return res;
@@ -146,12 +155,13 @@ TransfersStatus completeMultiTransfers(MultiHandle *handle, FILE *log_file, int 
             stat.res = 2;
             return stat;
         }
+        fclose(pdata->stream);
+        pdata->stream = NULL;
+
         
         // if(parse_write_routine != NULL){
         //     ParseParameters *params = malloc(sizeof(ParseParameters));
         //     params->filename = pdata->filename;
-        //     fseek(pdata->stream, 0, SEEK_SET);
-        //     params->parsefile = pdata->stream;
         //     params->outfile = out_file;
         //     params->parse_args = parse_data;
             
@@ -160,7 +170,7 @@ TransfersStatus completeMultiTransfers(MultiHandle *handle, FILE *log_file, int 
         //     gettimeofday(&pdata->parse_end, NULL);
         //     if (res != 0){
         //         stat.res = res;
-        //         strcpy(stat.url,pdata->url);
+        //         stat.url = pdata->url;
         //         rmvMultiEasy(handle, easy_handle);
         //         return stat;
         //     }

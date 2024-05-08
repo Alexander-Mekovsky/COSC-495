@@ -22,13 +22,16 @@ int setScopusFieldXPaths(XPathFields *fields) {
     }
 
     static struct Namespace namespaces[] = {
-        {"atom", "http://www.w3.org/2005/Atom"}
+        {"atom", "http://www.w3.org/2005/Atom"},
+        {"dc", "http://purl.org/dc/elements/1.1/"},
+        {"prism", "http://prismstandard.org/namespaces/basic/2.0/"}
     };
     fields->namespaces = namespaces;
     fields->nsCount = 1;
 
     fields->error_code_xpath = "//status/statusCode";
     fields->error_text_xpath = "//status/statusText";
+    fields->error_response_type = "json";
 
     fields->count = 16;
     fields->depthCount = 1;
@@ -42,8 +45,8 @@ int setScopusFieldXPaths(XPathFields *fields) {
         "//dc:identifier", "//atom:source-id", "//prism:issn", "//prism:eIssn",
         "//prism:isbn", "//dc:title", "//dc:creator", "//prism:publicationName",
         "//prism:coverDate", "//atom:citedby-count", "//prism:aggregationType",
-        "//atom:subtypeDescription", "//prism:articleNumber", "//prism:volume",
-        "//prism:doi", "//prism:affiliation"
+        "//atom:subtypeDescription", "//atom:articleNumber", "//prism:volume",
+        "//prism:doi", "//atom:affiliation"
     };
     fields->xpaths = paths;
 
@@ -83,28 +86,33 @@ void processMultiField(xmlNode *root, int ival, XPathFields *fields, char *multi
     
     xmlXPathContextPtr context = xmlXPathNewContext(root->doc);
     if (context == NULL) return; 
-    
+
     int ns = fields->depthInfo[ival][1];
-    xmlXPathRegisterNs(context, (xmlChar *)fields->namespaces[ns].prefix, (xmlChar *)fields->namespaces[ns].uri);
+    if (xmlXPathRegisterNs(context, (xmlChar *)fields->namespaces[ns].prefix, (xmlChar *)fields->namespaces[ns].uri) != 0) {
+        xmlXPathFreeContext(context);
+        return;  // Namespace registration failed
+    }
+    
     xmlXPathObjectPtr result = xmlXPathEvalExpression((xmlChar *)fields->xpaths[ival], context);
     
-    int off = 0;
-    if (ival != 0) {
-        off = fields->depthInfo[ival-1][3];
-    }
-
     multi[0] = '\0';
-
     if (result != NULL && result->nodesetval != NULL && result->nodesetval->nodeNr > 0) {
         size_t currentLength = 0;
         for (int j = 0; j < result->nodesetval->nodeNr; j++) {
-            char multiParts[1024] = "";
-
-            //needs change to dyn part length
+            xmlXPathObjectPtr partResults[3];
+            for (int k = 0; k < 3; k++) {
+                partResults[k] = xmlXPathEvalExpression((xmlChar *)fields->xmpaths[k + fields->depthInfo[ival][3]], context);
+            }
+            
+            char multiParts[1024] = ""; // consider dynamic allocation
             int written = snprintf(multiParts, sizeof(multiParts), "%s-%s-%s",
-                (char *)xmlNodeGetContent(xmlXPathEvalExpression((xmlChar *)fields->xmpaths[0 + off], context)->nodesetval->nodeTab[j]),
-                (char *)xmlNodeGetContent(xmlXPathEvalExpression((xmlChar *)fields->xmpaths[1 + off], context)->nodesetval->nodeTab[j]),
-                (char *)xmlNodeGetContent(xmlXPathEvalExpression((xmlChar *)fields->xmpaths[2 + off], context)->nodesetval->nodeTab[j]));
+                (char *)xmlNodeGetContent(partResults[0]->nodesetval->nodeTab[j]),
+                (char *)xmlNodeGetContent(partResults[1]->nodesetval->nodeTab[j]),
+                (char *)xmlNodeGetContent(partResults[2]->nodesetval->nodeTab[j]));
+            for (int k = 0; k < 3; k++) {
+                xmlXPathFreeObject(partResults[k]);
+            }
+            
             if (written > 0 && (currentLength + written + 1) < multiSize) { 
                 if (currentLength > 0) {
                     strncat(multi, "|", multiSize - currentLength - 1); 
@@ -119,6 +127,7 @@ void processMultiField(xmlNode *root, int ival, XPathFields *fields, char *multi
     xmlXPathFreeObject(result);
     xmlXPathFreeContext(context);
 }
+
 
 
 
@@ -151,7 +160,7 @@ int extractAndWriteToCsv(xmlNode *root, FILE *stream, XPathFields *fields) {
             processMultiField(root, j, fields, multiFieldResult, sizeof(multiFieldResult));
             fprintf(stream, ",\"%s\"", multiFieldResult);
         }
-        fprintf(stream, ",");
+        if(i+1 < len) fprintf(stream, ",");
     }
 
     fprintf(stream, "\n");
@@ -180,46 +189,46 @@ int parseChunkedXMLResponse(xmlParserCtxtPtr context, const char *ptr, int size,
     return lastChunk; 
 }
 
-int readCallback(void *context, char *buffer, int len) {
-    return fread(buffer, 1, len, (FILE *)context);
-}
+char getFirstChar(const char* filename) {
+    FILE *file;
+    char firstChar = '\0';  // Default to null character if reading fails
 
-int closeCallback(void *context) {
-    FILE *file = (FILE *)context;
-    int res = fclose(file);
-    file = NULL;
-    return res;  // No operation if you don't want to close the file here
+    file = fopen(filename, "r");  // Open the file for reading
+    if (file == NULL) {
+        perror("Error opening file");
+        return firstChar;  // Return null character if file cannot be opened
+    }
+
+    // Read the first character
+    int result = fgetc(file);
+    if (result != EOF) {
+        firstChar = (char)result;
+    } else {
+        perror("Error reading character");
+    }
+
+    // Close the file
+    fclose(file);
+
+    return firstChar;
 }
 
 int parseXMLFile(void *args) {
     ParseArguments *pargs = (ParseArguments *)args;
-
-    // Set up the input source for reading from FILE*
-    xmlParserInputBufferPtr inputBuffer = xmlParserInputBufferCreateIO(readCallback, closeCallback, pargs->parsefile, XML_CHAR_ENCODING_NONE);
-
-    if (!inputBuffer) return 5;
-
-
-    xmlDocPtr doc = xmlReadIO(inputBuffer->readcallback, inputBuffer->closecallback, inputBuffer->context, NULL, NULL, 0);
-    if (!doc) {
-        xmlFreeParserInputBuffer(inputBuffer);
-        return 6;
-    }
+    if ((char)getFirstChar(pargs->filename) == '{')
+        return 301;
+    xmlDocPtr doc = xmlReadFile(pargs->filename, NULL, 0);
+    if (!doc) return -1;  // Error loading file
 
     xmlNode *root_element = xmlDocGetRootElement(doc);
     if (!root_element) {
         xmlFreeDoc(doc);
-        xmlFreeParserInputBuffer(inputBuffer);
-        return 7;
+        return -1;
     }
 
-    int res = checkXPathErrorCode(root_element, pargs->parse_args);
-    if(res != 0)
-        return res;
-
-    res = extractAndWriteToCsv(root_element, pargs->outfile, pargs->parse_args);
+    int res = extractAndWriteToCsv(root_element, pargs->outfile, pargs->parse_args);
     xmlFreeDoc(doc);
-    xmlFreeParserInputBuffer(inputBuffer);
+    free(pargs);
     return res;
 }
 

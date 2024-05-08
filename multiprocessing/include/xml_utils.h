@@ -16,6 +16,7 @@ typedef struct Namespace{
 typedef struct {
     const char *error_code_xpath;
     const char *error_text_xpath;
+    const char *error_response_type;
     char **xpaths;
     char **xmpaths;
     int count;
@@ -43,5 +44,6 @@ int cleanupXML(xmlParserCtxtPtr context);
 int readCallback(void *context, char *buffer, int len);
 int closeCallback(void *context);
 int parseXMLFile(void *args);
+char getFirstChar(const char* filename);
 
 #endif //XML_UTILS_H
