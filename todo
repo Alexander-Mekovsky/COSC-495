@@ -19,6 +19,7 @@ IN PROGRESS:
 - [ ] Finish loading the request file(Requests) to be in the correct theme
 
 DONE:
+- [x] Refactored main.py to make_call.py
 - [x] Create basic app
 - [x] Setup Welcome Page
 - [x] Setup Menu Bar and status bar
