@@ -1,0 +1,2 @@
+API,Requests(/s) Preset,Requests(/s),Quota,Timeframe,Max Index from 0 w/o Pagination,Response Headers Rate,Response Header Remaining,Response Header Reset(Epoch sec)
+scopus_search,"Development,Low,Medium,High","9,9,12,15",20000,week,5000,X-RateLimit-Limit,X-RateLimit-Remaining,X-RateLimit-Reset

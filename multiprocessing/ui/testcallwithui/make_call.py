@@ -5,16 +5,30 @@ import json
 from datetime import datetime
 import xml.etree.ElementTree as ET
 import pandas as pd
+import os 
 
 def read_api_config(api_name):
-    api_df = pd.read_csv('api/allowedAPI.csv')
+    api_df = pd.read_csv(os.path.join(r"C:\Users\Joshua\Documents\School\Classes\COSC-495\multiprocessing\api", 'allowedAPI.csv'))
     api_info = api_df.loc[api_df['API'] == api_name]
-    print(api_name)
+    
     for api in api_df['API'].values:
-        print(api)
+        pass
     if not api_info.empty:
-        field_file = api_info.iloc[0]['Field Location']
-        fields_df = pd.read_csv(f'api/api-fields/{field_file}')
+        # field_file = api_info.iloc[0]['Field']
+        fields_df = pd.read_csv(os.path.join(r"C:\Users\Joshua\Documents\School\Classes\COSC-495\multiprocessing\api",'fields', f"{api_name}.csv"))
+        return fields_df
+    else:
+        return None
+    
+def read_api_config_two(api_name):
+    api_df = pd.read_csv(os.path.join(r"C:\Users\Joshua\Documents\School\Classes\COSC-495\multiprocessing\api", 'allowedAPI.csv'))
+    api_info = api_df.loc[api_df['API'] == api_name]
+
+    for api in api_df['API'].values:
+        pass
+    if not api_info.empty:
+        # field_file = api_info.iloc[0]['Field']
+        fields_df = pd.read_csv(os.path.join(r"C:\Users\Joshua\Documents\School\Classes\COSC-495\multiprocessing\api",'params', f"{api_name}.csv"))
         return fields_df
     else:
         return None
@@ -299,66 +313,11 @@ def print_entries(data):
                 print(f"  {formatted_key}: {value}")
             print("-" * 60)  # Separator for entries
         
-def main():
-    api_key = "779e3af66431ad1aa8416a71522e3197"
-    search_terms = "climate change global warming ocean atmosphere" # climate change global warming ocean atmosphere moon star
-    response_type = "xml"  # 'json' or 'xml'
-    api = 'scopus_search'
-    fields = [
-        "link ref=self",  # Content Abstract Retrieval API URI
-        "link ref=scopus",  # Scopus abstract detail page URL
-        "link ref=scopus-citedby",  # Scopus Cited By Results URL
-        "prism:url",  # Content Abstract Retrieval API URI
-        "dc:identifier",  # Scopus ID
-        "eid",  # Electronic ID
-        "dc:title",  # Article Title
-        "prism:aggregationType",  # Source Type
-        "subtype",  # Document Type code
-        "subtypeDescription",  # Document Type description
-        "citedby-count",  # Cited-by Count
-        "prism:publicationName",  # Source Title
-        "prism:isbn",  # Source Identifier (ISBN)
-        "prism:issn",  # Source Identifier (ISSN)
-        "prism:volume",  # Volume
-        "prism:issueIdentifier",  # Issue
-        "prism:pageRange",  # Page
-        "prism:coverDate",  # Publication Date (YYYY-MM-DD)
-        "prism:coverDisplayDate",  # Publication Date (original text)
-        "prism:doi",  # Document Object Identifier
-        "pii",  # Publication Item Identifier
-        "pubmed-id",  # MEDLINE Identifier
-        "orcid",  # ORCID
-        "dc:creator",  # First Author (auth first entry)
-        "openaccess",  # Open Access status
-        "openaccessFlag",  # Open Access status
-        "affiliation",  # Affiliation wrapper
-        "affiliation affilname",  # Affiliation name
-        "affiliation affiliation-city",  # Affiliation city
-        "affiliation affiliation-country",  # Affiliation country
-        "affiliation afid",  # Affiliation ID
-        "affiliation affiliation-url",  # Content Affiliation Retrieval API URI referencing the affiliation profile
-        "affiliation name-variant",  # Alternate Affiliation name
-        "author",  # Author wrapper
-        "author author-url",  # The author-url contains the Content Author Retrieval API URI referencing the author profile
-        "author authid",  # Includes author ID
-        "author orcid",  # ORCID
-        "author authname",  # Author name
-        "author given-name",  # Given name
-        "author surname",  # Surname
-        "author initials",  # Initials
-        "author afid",  # Affiliation ID
-        "dc:description",  # Abstract
-        "authkeywords",  # Author Keywords
-        "article-number",  # Article Number
-        "fund-acr",  # Funding Agency Acronym
-        "fund-no",  # Funding Agency Identification
-        "fund-sponsor",  # Funding Agency Name
-        "prism:eIssn",  # Electronic Source Identifier
-        "source-id",  # Elsevier Source Identifier
-    ]
 
-    view = 'STANDARD'
+def make_basic_call(api,link):
+    pass
 
+def make_call(api_key, search_terms, response_type, api, fields, view):
     count = 1
     start = 0
     results, headers, reset_time, remaining = fetch_data(api,search_terms,fields, api_key,view, response_type, count, start)
@@ -366,7 +325,3 @@ def main():
         print("Quota remaining:", remaining)
         print("Quota resets at:", reset_time)
         print_entries(results)
-    
-
-if __name__ == "__main__":
-    main()

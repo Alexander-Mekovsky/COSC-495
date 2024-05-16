@@ -1,0 +1,31 @@
+TODO:
+- [ ] Figure out a way to load the open files(ContentArea) to be in the correct theme
+- [ ] Finish menu structure for making api calls for a pre-loaded
+- [ ] Setup the actual calling
+- [ ] Rename the testcallwithui file
+- [ ] Load the c program into the make_call.py
+- [ ] Add options for rate
+- [ ] Configure the menu structure for loading configurations to a user loaded api
+- [ ] Fix the C throttling
+- [ ] Add settings page
+- [ ] Add preferences in the settings
+- [ ] Make the theme apply to the file browser and frames
+- [ ] Redoc
+- [ ] Refactor include paths to be formed from executable creation
+- [ ] Clean Branch
+- [ ] Merge and Clean
+
+IN PROGRESS:
+- [ ] Finish loading the request file(Requests) to be in the correct theme
+
+DONE:
+- [x] Create basic app
+- [x] Setup Welcome Page
+- [x] Setup Menu Bar and status bar
+- [x] Setup Create project page
+- [x] Setup Open project button
+- [x] Setup project panels
+- [x] Add project verification
+- [x] Add theme class structure
+- [x] Refactor to use theme class (except ContentArea and Requests)
+

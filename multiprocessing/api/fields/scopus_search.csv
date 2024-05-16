@@ -1,0 +1,51 @@
+Field,Description,STANDARD,COMPLETE
+link ref=self,Content Abstract Retrieval API URI,X,X
+link ref=scopus,Scopus abstract detail page URL,X,X
+link ref=scopus-citedby,Scopus Cited By Results URL,X,X
+prism:url,Content Abstract Retrieval API URI,X,X
+dc:identifier,Scopus ID,X,X
+eid,Electronic ID,X,X
+dc:title,Article Title,X,X
+prism:aggregationType,Source Type,X,X
+subtype,Document Type code,X,X
+subtypeDescription,Document Type description,X,X
+citedby-count,Cited-by Count,X,X
+prism:publicationName,Source Title,X,X
+prism:isbn,Source Identifier,X,X
+prism:issn,Source Identifier,X,X
+prism:volume,Volume,X,X
+prism:issueIdentifier,Issue,X,X
+prism:pageRange,Page,X,X
+prism:coverDate,Publication Date (YYYY-MM-DD),X,X
+prism:coverDisplayDate,Publication Date (original text),X,X
+prism:doi,Document Object Identifier,X,X
+pii,Publication Item Identifier,X,X
+pubmed-id,MEDLINE Identifier,X,X
+orcid,ORCID,X,X
+dc:creator,First Author (auth first entry),X,X
+openaccess,Open Access status,X,X
+openaccessFlag,Open Access status,X,X
+affiliation,Affiliation wrapper,X,X
+affiliation affilname,Affiliation name,X,X
+affiliation affiliation-city,Affiliation city,X,X
+affiliation affiliation-country,Affiliation country,X,X
+affiliation afid,Affiliation ID,,X
+affiliation affiliation-url,Content Affiliation Retrieval API URI referencing the affiliation profile,,X
+affiliation name-variant,Alternate Affiliation name,,X
+author,Author wrapper,,X
+author author-url,The author-url contains the Content Author Retrieval API URI referencing the author profile,,X
+author authid,Includes author ID,,X
+author orcid,ORCID,,X
+author authname,Author name,,X
+author given-name,Given name,,X
+author surname,Surname,,X
+author initials,Initials,,X
+author afid,Affiliation ID,,X
+dc:description,Abstract,,X
+authkeywords,Author Keywords,,X
+article-number,Article Number,,X
+fund-acr,Funding Agency Acronym,,X
+fund-no,Funding Agency Identification,,X
+fund-sponsor,Funding Agency Name,,X
+/prism:eIssn,Electronic Source Identifier,X,X
+/source-id,Elsevier Sourse Identifier,X,X

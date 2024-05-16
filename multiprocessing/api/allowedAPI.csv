@@ -1,0 +1,2 @@
+API,Description,Query Endpoint,Multiple Views,Response Formats,Guide
+scopus_search,Scopus is the largest abstract and citation database of research literature and quality web sources. Scopus covers 50 million abstracts of over 20.5 thousand peer-reviewed titles from more than five thousand publishers.,https://api.elsevier.com/content/search/scopus,X,"JSON,ATOM,XML",https://dev.elsevier.com/guides/Scopus%20API%20Guide_V1_20230907.pdf

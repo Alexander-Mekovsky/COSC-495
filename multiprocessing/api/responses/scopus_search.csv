@@ -1,0 +1,10 @@
+﻿Status,Status Code,Error Code,Representation,Message,Example
+200,,,"application/json,application/atom+xml,application/xml","SCOPUS JSON Response: This is XML representing the requested document.,SCOPUS ATOM Response: This is XML representing the requested document.,SCOPUS XML Response: This is XML representing the requested document.","https://dev.elsevier.com/payloads/search/scopusSearchResp.json,https://dev.elsevier.com/payloads/search/scopusSearchATOMResp.xml,https://dev.elsevier.com/payloads/search/scopusSearchResp.xml"
+400,INVALID_INPUT,,text/xml,Invalid Request: This is an error that occurs when invalid information is submitted.,https://dev.elsevier.com/payloads/invalidRequest.xml
+401,AUTHORIZATION_ERROR,,text/xml,Authentication Error: This is an error that occurs when a user cannot be authenticated due to missing/invalid credentials (authtoken or APIKey).,https://dev.elsevier.com/payloads/authError.xml
+403,AUTHORIZATION_ERROR,,text/xml,Authorization/Entitlements Error: This is an error that occurs when a user cannot be authenticated or entitlements cannot be validated.,https://dev.elsevier.com/payloads/authError.xml
+405,INVALID_INPUT,,text/xml,Invalid HTTP Method: This is an error that occurs when the requested HTTP Method is invalid.,https://dev.elsevier.com/payloads/invalidHttpMethod.xml
+406,INVALID_INPUT,,text/xml,Invalid Mime Type: This is an error that occurs when the requested mime type is invalid.,https://dev.elsevier.com/payloads/invalidAcceptHeader.xml
+429,QUOTA_EXCEEDED,,text/xml,Quota Exceeded: This is an error that occurs when a requester has exceeded the quota limits associated with their API Key.,https://dev.elsevier.com/payloads/quotaExceeded.xml
+500,SYSTEM_ERROR,,text/xml,Rate of requests exceeds specified limits. Recommend lowering request rate and/or concurrency of requests.,https://dev.elsevier.com/payloads/genericError.xml
+200,,RATE_LIMIT_EXCEEDED,application/json,,
