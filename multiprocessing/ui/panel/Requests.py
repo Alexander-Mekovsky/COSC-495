@@ -13,13 +13,12 @@ class RequestsPanel(wx.Panel):
         super(RequestsPanel, self).__init__(parent)
         self.parent = parent
         
-        config_path = r"C:\Users\Joshua\Documents\School\Classes\COSC-495\multiprocessing\ui\theme_config.ini"
-        theme = twx.wxFormat(config_path,'high_contrast')
+        self.theme = parent.theme
         
         main_sizer, box = ui.box(direction=wx.VERTICAL)
 
         notebook = aui.AuiNotebook(self)
-
+        self.theme.Add(notebook, twx.GENERAL)
         # Tabs
         self.add_api_request_tab(notebook, project_path)
         self.add_network_tab(notebook)
@@ -29,7 +28,7 @@ class RequestsPanel(wx.Panel):
                          1, wx.EXPAND, 0)
 
         # theme.Add(self, twx.GENERAL)
-        theme.apply_theme_all()
+        self.theme.apply_theme_all()
         self.SetSizer(main_sizer)
 
         self.parent._mgr.Update()
@@ -50,7 +49,8 @@ class RequestsPanel(wx.Panel):
             req_fields.append('apiendpoint')
         
         self.verify_fields(panel, sizer, config, req_fields, project_path)
-        
+        self.theme.Add(panel, twx.GENERAL)
+        self.theme.apply_theme_all()
         panel.SetSizer(sizer)
         panel.Layout()
         
@@ -70,18 +70,24 @@ class RequestsPanel(wx.Panel):
             field_vals[field] = value
             if value is None:
                 if field[:4] == 'path':
-                    field_sizer, field_label, self.field_val, browse_btn = ui.browsebox(panel, self.on_browse, f'Select a/n {field[5:]} location:' )
-                    field_controls[field] = [field_sizer, field_label, self.field_val, browse_btn]
+                    field_sizer, field_label, field_val, browse_btn = ui.browsebox(panel, self.on_browse, f'Select a/n {field[5:]} location:' )
+                    field_controls[field] = [field_sizer, field_label, field_val, browse_btn]
                 else:
-                    field_sizer, field_label, field_val = ui.editcombo(panel, f'Enter a value for the field ({field}):')
+                    field_sizer, field_label, field_val = ui.inputbox(panel, f'Enter a value for the field ({field}):')
                     field_controls[field] = [field_sizer, field_label, field_val]
-                
+                self.theme.Add(field_label, twx.GENERAL)
+                self.theme.Add(field_val, twx.GENERAL)
+                if browse_btn:
+                    self.theme.Add(browse_btn, twx.GENERAL)
+                self.theme.apply_theme_all()
                 vbox.Add(field_sizer, flag=wx.TOP | wx.RIGHT | wx.LEFT , border=10)
                 
         # check the field value, if it is not null, write to the config file and delete the 
         if field_controls:
             submit_btn = wx.Button(panel, label='Submit')
             submit_btn.Bind(wx.EVT_BUTTON, lambda event: self.on_submit(event, field_controls, vbox, config, submit_btn, panel,path))
+            self.theme.Add(submit_btn, twx.GENERAL)
+            self.theme.apply_theme_all()
             vbox.Add(submit_btn, flag=wx.ALIGN_LEFT | wx.ALL, border=10)
         else:
             self.make_requests(panel,vbox, path, config)

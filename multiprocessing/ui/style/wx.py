@@ -2,6 +2,7 @@ import wx
 from style.theme import Theme
 
 # Define constants for widget types to be used for theming.
+CAPTION = 'caption'
 TITLE = 'title'
 HEADER = 'header'
 GENERAL= 'general'
@@ -21,6 +22,7 @@ class wxFormat(Theme):
             
         # Define adjustments for each widget type to modify themes dynamically.
         self.theme_adjustments = {
+            CAPTION: {'font_size_offset': 0, 'color_factor': 0.0},  # No change
             TITLE: {'font_size_offset': 2, 'color_factor': 0.1},  # Lighter
             HEADER: {'font_size_offset': 1, 'color_factor': 0.05},  # Slightly lighter
             GENERAL: {'font_size_offset': 0, 'color_factor': 0.0},  # No change
@@ -69,6 +71,8 @@ class wxFormat(Theme):
         adjusted_foreground_color = self.adjust_color(color=base_foreground_color, factor=current_adjustments['color_factor'])
         if hasattr(widget, 'SetForegroundColour'):
             widget.SetForegroundColour(adjusted_foreground_color)
+        if hasattr(widget, 'CaptionTextColour'):
+            widget.CaptionTextColour(adjusted_foreground_color)
 
         # Adjust and apply font settings.
         if hasattr(widget, 'GetFont') and hasattr(widget, 'SetFont'):
@@ -121,7 +125,16 @@ class wxFormat(Theme):
         """
         Adds a widget to the theme with its associated type.
         """
+        id = len(self.widgets_control)
         self.widgets_control[len(self.widgets_control)] = [widget, widget_type]
+        return id
+        
+    def Remove(self, id):
+        """
+        Removes widgets from the theme
+        """
+        if id in self.widgets_control:
+            del self.widgets_control[id]
     
     @staticmethod
     def _get_font_family(font_name):

@@ -1,5 +1,6 @@
 import wx
 import wx.html
+import wx.lib.agw.hyperlink
 
 import util.ui as ui
 import style.wx as twx
@@ -8,9 +9,7 @@ class WelcomePanel(wx.Panel):
     def __init__(self, parent):
         super(WelcomePanel, self).__init__(parent)
         self.parent = parent
-
-        config_path = r"C:\Users\Joshua\Documents\School\Classes\COSC-495\multiprocessing\ui\theme_config.ini"
-        theme = twx.wxFormat(config_path,'high_contrast')
+        theme = parent.theme
         
         self.themes = [theme]
         
@@ -44,7 +43,7 @@ class WelcomePanel(wx.Panel):
         list, list_items = ui.list(self, linked_list, regular_list)
 
         for item in list_items:
-            if isinstance(item, wx.html.HtmlWindow):
+            if isinstance(item, wx.lib.agw.hyperlink.HyperLinkCtrl):
                 theme.Add(item, twx.LINK)
             else:
                 theme.Add(item, twx.LIST)

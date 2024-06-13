@@ -1,6 +1,6 @@
 import wx
 import wx.html
-
+import wx.lib.agw.hyperlink as hl
 
 def box(parent='', static=False, label='', direction=wx.HORIZONTAL):
     """
@@ -58,29 +58,34 @@ def list(parent, linked_items=None, regular_items=None):
     number = 1
     for item_l in linked_items:
         hbox, ebox = box()
-        left_label = text(parent, f"{number}.")
-        item_list.append(left_label)
-        hbox.Add(left_label, flag=wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_LEFT | wx.ALL, border=5)
+        static_text1 = text(parent, f"{number}.")
+        item_list.append(static_text1)
+        hyperlink = hl.HyperLinkCtrl(parent, -1, f"{item_l[0]}:", URL="")
+        hyperlink.AutoBrowse(False)
+        item_list.append(hyperlink)
+        hyperlink.Bind(hl.EVT_HYPERLINK_LEFT, item_l[1])
         
-        html = wx.html.HtmlWindow(parent, size=(len(item_l[0])*8, 40),style=wx.html.HW_SCROLLBAR_NEVER)
-        html.SetPage(f'<span style="color: #FF0000" ><a href="{item_l[0]}">{item_l[0]}</a></span>')
-        html.Bind(wx.html.EVT_HTML_LINK_CLICKED, item_l[1])
-        item_list.append(html)
-        hbox.Add(html, proportion=1, flag=wx.EXPAND | wx.TOP | wx.BOTTOM, border=5)
+        hbox.Add(static_text1, 0, wx.ALL, 5)
+        hbox.Add(hyperlink, 0, wx.ALL, 5)
         
-        hbox_right, ebox = box()
-        right_label = text(parent, f"{item_l[2]}")
-        item_list.append(right_label)
-        hbox_right.Add(right_label, proportion=0, flag=wx.EXPAND)
+        # Multiline static text aligned to the left
+        multiline_text = text(parent, f"{item_l[2]}")
+        item_list.append(multiline_text)
+        multiline_text.Wrap(500)  # Adjust the width to control wrapping
         
-        hbox.Add(hbox_right, proportion=1, flag=wx.EXPAND)
-        vbox.Add(hbox, proportion=1, flag=wx.EXPAND | wx.ALL)
+        vbox.Add(hbox, 0, wx.LEFT, 10)
+        vbox.Add(multiline_text, 0, wx.LEFT, 10)
+        
+        # hbox.Add(hbox_right, proportion=1, flag=wx.EXPAND)
+        # vbox.Add(hbox, proportion=1, flag=wx.EXPAND | wx.ALL)
         
         number += 1
     for item_r in regular_items:
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
         label = text(parent, f"{number}. {item_r}")
         item_list.append(label)
-        vbox.Add(label, proportion= 1, flag= wx.EXPAND | wx.ALL, border=5)
+        hbox.Add(label, 0, wx.ALL, 5)
+        vbox.Add(hbox, 0, wx.LEFT, 10)
         number += 1
     
     vbox.Layout()
@@ -159,6 +164,7 @@ def dropbox(parent, populate_method, path, event_handler, txt):
     label = text(parent, txt)
     hbox.Add(label, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=8)
     
+
     dropbox = wx.ComboBox(parent, style=wx.CB_READONLY)
     populate_method(path,dropbox)
     dropbox.Bind(wx.EVT_COMBOBOX, event_handler)

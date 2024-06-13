@@ -2,6 +2,8 @@ import wx
 import wx.lib.agw.aui as aui
 import os
 
+import style.wx as twx
+
 # Add imports for specific panels here
 import panel.Welcome as wlc
 import panel.CreateProject as cpp
@@ -18,10 +20,12 @@ FILE_EXPLORER = 'file_explorer'
 CONTENT_AREA = 'content_area'
 REQUESTS = 'requests'
 
-
 class MainFrame(wx.Frame):
     def __init__(self, parent, title):
         super(MainFrame, self).__init__(parent, title=title, size=(1024, 768))
+        
+        config_path = r"C:\Users\Joshua\Documents\School\Classes\COSC-495\multiprocessing\ui\theme_config.ini"
+        self.theme = twx.wxFormat(config_path,'high_contrast')
         
         self._mgr = aui.AuiManager(self)
         self.hidden_panes = {}
@@ -35,7 +39,6 @@ class MainFrame(wx.Frame):
         self.welcome_panel()
         
         self.status_bar()
-        
         self._mgr.Bind(aui.EVT_AUI_PANE_CLOSE, self.on_pane_close)
         self._mgr.Update()
         
@@ -146,22 +149,22 @@ class MainFrame(wx.Frame):
         self._mgr.Update()
         
     def add_file_explorer_panel(self, project_path):
-        if not self.frame_pane_exists("file_explorer"):
+        if not self.frame_pane_exists(FILE_EXPLORER):
             self.file_explorer_panel = fep.FileExplorerPanel(self, project_path)
             self._mgr.AddPane(self.file_explorer_panel, aui.AuiPaneInfo().Name(FILE_EXPLORER).Left().Caption("Project Files"))
             self.file_explorer_item.Check(True)
             self._mgr.Update()
 
     def add_content_area_panel(self):
-        if not self.frame_pane_exists("content_area"):
+        if not self.frame_pane_exists(CONTENT_AREA):
             self.content_area_panel = cap.ContentAreaPanel(self)
             self._mgr.AddPane(self.content_area_panel, aui.AuiPaneInfo().Name(CONTENT_AREA).Center().Caption("Open Files"))
             self.open_item.Check(True)
             self._mgr.Update()
 
     def add_requests_panel(self, project_path):
-        if not self.frame_pane_exists("requests"):
-            third_height = self.GetSize().GetHeight() // 3
+        if not self.frame_pane_exists(REQUESTS):
+            third_height = (self.GetSize().GetHeight() // 5) * 2
             min_height = self.status_bar.GetSize().GetHeight()
             self.requests_panel = rqp.RequestsPanel(self, project_path)
             self._mgr.AddPane(self.requests_panel, aui.AuiPaneInfo().Name(REQUESTS).Bottom().BestSize(-1, third_height).MinSize(-1, min_height).Caption("Tools"))

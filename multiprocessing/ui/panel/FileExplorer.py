@@ -11,24 +11,23 @@ class FileExplorerPanel(wx.Panel):
         self.project_path = project_path
         self.file_paths = {}
         
-        config_path = r"C:\Users\Joshua\Documents\School\Classes\COSC-495\multiprocessing\ui\theme_config.ini"
-        theme = twx.wxFormat(config_path,'high_contrast')
+        self.theme = parent.theme
         
         main_sizer, box = ui.box(direction=wx.VERTICAL)
         
         refresh_btn = wx.Button(self, label = "Refresh")
         refresh_btn.Bind(wx.EVT_BUTTON, lambda evt: self.refresh_files(evt,self.project_path))
-        theme.add_widgets(main_sizer, refresh_btn, flag=wx.EXPAND | wx.ALL, border=5)
+        self.theme.add_widgets(main_sizer, refresh_btn, flag=wx.EXPAND | wx.ALL, border=5)
         
         self.tree_ctrl = wx.TreeCtrl(self)
         root = self.tree_ctrl.AddRoot(os.path.basename(self.project_path))
         self.build_file_tree(root, self.project_path)
         self.tree_ctrl.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_open_file)
-        theme.add_widgets(main_sizer, self.tree_ctrl, twx.GENERAL,
+        self.theme.add_widgets(main_sizer, self.tree_ctrl, twx.GENERAL,
                           0, wx.EXPAND | wx.ALL, 5)
         
-        theme.Add(self, twx.GENERAL)
-        theme.apply_theme_all()
+        self.theme.Add(self, twx.GENERAL)
+        self.theme.apply_theme_all()
         self.SetSizer(main_sizer)
         main_sizer.Layout()
         self.Layout()
@@ -92,13 +91,14 @@ class FileExplorerPanel(wx.Panel):
     
     def open_file_in_tab(self, file_path):
         new_page = wx.TextCtrl(self.parent.notebook, style=wx.TE_MULTILINE)
+        self.theme.Add(new_page, twx.GENERAL)
         with open(file_path, 'r') as file_content:
             new_page.SetValue(file_content.read())
-            
+        self.theme.Add(new_page, twx.GENERAL)
         self.parent.notebook.AddPage(new_page, os.path.basename(file_path))
         page_index = self.parent.notebook.GetPageIndex(new_page)
         self.file_paths[page_index] = file_path
-        
+        self.theme.apply_theme_all()
         new_page.SetSize(self.parent.notebook.GetClientSize())  # Set the size of the TextCtrl to the size of the notebook client area
         self.parent.notebook.GetAuiManager().Update()
         

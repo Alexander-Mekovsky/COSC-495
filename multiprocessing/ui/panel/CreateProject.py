@@ -13,8 +13,7 @@ class CreateProjectPanel(wx.Panel):
         super(CreateProjectPanel, self).__init__(parent)
         self.parent = parent
         
-        config_path = r"C:\Users\Joshua\Documents\School\Classes\COSC-495\multiprocessing\ui\theme_config.ini"
-        theme = twx.wxFormat(config_path,'high_contrast')
+        theme = parent.theme
         
         main_sizer, box= ui.box(direction=wx.VERTICAL)
         main_sizer.Add((-1, 10))

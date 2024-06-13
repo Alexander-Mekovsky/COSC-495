@@ -8,17 +8,16 @@ class ContentAreaPanel(wx.Panel):
     def __init__(self,parent):
         super(ContentAreaPanel, self).__init__(parent)
         self.parent = parent
-        
-        config_path = r"C:\Users\Joshua\Documents\School\Classes\COSC-495\multiprocessing\ui\theme_config.ini"
-        theme = twx.wxFormat(config_path,'high_contrast')
+        theme = parent.theme
         
         self.parent.notebook = aui.AuiNotebook(self)
+        theme.Add(self, twx.GENERAL)
         self.main_sizer, box = ui.box(direction=wx.VERTICAL)
         self.main_sizer.Add(self.parent.notebook,
                           1, wx.EXPAND, 0)
         self.parent.notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.on_note_book)
         
-        theme.Add(self, twx.GENERAL)
+        theme.Add(self.parent.notebook, twx.GENERAL)
         theme.apply_theme_all()
         self.SetSizer(self.main_sizer)
         self.main_sizer.Layout()
